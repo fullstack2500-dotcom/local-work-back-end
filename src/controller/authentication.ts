@@ -1,10 +1,19 @@
 import { Request, Response } from "express";
 import User from "../model/User";
 import bcrypt from "bcryptjs";
+import { RegisterSchema } from "../validator/authentication";
 
 // Register The User:
 export const Register = async (req: Request, res: Response) => {
-  const { name, email, password, role } = req.body;
+  // Validate user information:
+  const validatedData = RegisterSchema.safeParse(req.body)
+  if (validatedData.error) {
+
+    const errors = JSON.parse(validatedData.error.message)
+    return res.status(400).json({ success: false, message: errors[0].message })
+  }
+
+  const { name, email, password, role } = validatedData.data;
 
   try {
     const hash = await bcrypt.hash(password, 12);
