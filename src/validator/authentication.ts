@@ -31,5 +31,6 @@ export const RegisterSchema = z.object({
   // Source - https://stackoverflow.com/q
   // Posted by user19910212, modified by community. See post 'Timeline' for change history
   // Retrieved 2026-01-12, License - CC BY-SA 4.0
-  role: z.enum(["user", "admin"], "Role must be either user or admin")
+  // To ensure correct usage of .optional() - https://joodi.medium.com/understanding-zod-schema-validation-with-optional-fields-db4f982f8cec
+  role: z.enum(["user", "admin"], "Role must be either user or admin").optional()
 })
