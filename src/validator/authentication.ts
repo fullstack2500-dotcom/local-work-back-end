@@ -1,14 +1,19 @@
 import z from "zod";
 
 export const RegisterSchema = z.object({
+  // Name validation:
   name: z
       .string("Name must be a string")
       .min(3, "Name must have at least 3 characters")
       .max(50, "Name must have a maximum of 50 characters")
       .regex(/^[ A-Za-z0-9_@./#&+-]*$/, "Name must only have one letter, one digit, and one special character"), // https://www.servicenow.com/community/itsm-forum/allow-only-alphanumeric-values-and-special-characters/td-p/712231
+
+  // Email validation:
   email: z
       .string("Email must be a string")
       .email("Email must be a valid email"),
+
+  // Password validation:
   password: z
       .string("Password must be a string")
       .min(6, "Password must have at least 6 characters")
@@ -23,9 +28,8 @@ export const RegisterSchema = z.object({
         "Password must have one letter, one digit, and one special character"
       ),
 
-      // Source - https://stackoverflow.com/q
-      // Posted by user19910212, modified by community. See post 'Timeline' for change history
-      // Retrieved 2026-01-12, License - CC BY-SA 4.0
-
-      role: z.enum(["user", "admin"], "Role must be either user or admin")
+  // Source - https://stackoverflow.com/q
+  // Posted by user19910212, modified by community. See post 'Timeline' for change history
+  // Retrieved 2026-01-12, License - CC BY-SA 4.0
+  role: z.enum(["user", "admin"], "Role must be either user or admin")
 })
