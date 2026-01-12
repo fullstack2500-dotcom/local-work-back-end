@@ -34,3 +34,8 @@ export const RegisterSchema = z.object({
   // To ensure correct usage of .optional() - https://joodi.medium.com/understanding-zod-schema-validation-with-optional-fields-db4f982f8cec
   role: z.enum(["user", "admin"], "Role must be either user or admin").optional()
 })
+
+export const LoginSchema = z.object({
+  email: z.string("Email must be a string").email("Email must be a valid email"),
+  password: z.string("Password must be a string")
+})

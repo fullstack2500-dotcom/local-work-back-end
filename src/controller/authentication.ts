@@ -1,7 +1,8 @@
 import { Request, Response } from "express";
 import User from "../model/User";
 import bcrypt from "bcryptjs";
-import { RegisterSchema } from "../validator/authentication";
+import { RegisterSchema, LoginSchema } from "../validator/authentication";
+import jwt from "jsonwebtoken"
 
 // Register The User:
 export const Register = async (req: Request, res: Response) => {
@@ -33,5 +34,57 @@ export const Register = async (req: Request, res: Response) => {
         message: error.message
       })
     }
+
+    // Server Error:
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error"
+    })
+  }
+}
+
+// Login Controller:
+export const Login = async (req: Request, res: Response) => {
+  // Validate email and password:
+  const validatedData = LoginSchema.safeParse(req.body)
+
+  // If there is an error:
+  if (validatedData.error) {
+    const errors = JSON.parse(validatedData.error.message)
+    return res.status(400).json({
+
+      success: false,
+      message: errors[0].message
+    })
+  }
+
+  // Validated email and password:
+  const { email, password } = validatedData.data
+
+  try {
+    // Verify email if it exists:
+    const user = await User.findOne({ email })
+    if (!user) return res.status(400).json({ success: false, message: "Invalid credentials!" })
+
+    // Verify password:
+    const isMatch = await bcrypt.compare(password, user.password)
+    if (!isMatch) return res.status(400).json({ success: false, message: "Invalid credentials!" })
+
+    // Generate the token:
+    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET as string, {
+      expiresIn: '1h'
+    })
+
+    // Return success message with token:
+    return res.status(200).json({
+      success: true,
+      message: "Login Successful!",
+      token
+    })
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error"
+    })
   }
 }
