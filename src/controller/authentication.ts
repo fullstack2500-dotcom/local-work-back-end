@@ -19,7 +19,7 @@ export const Register = async (req: Request, res: Response) => {
     console.error(error)
     
     if (error instanceof Error) {
-      return res.status(500).json({
+      return res.status(400).json({
         success: false,
         message: error.message
       })

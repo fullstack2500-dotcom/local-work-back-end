@@ -7,10 +7,10 @@ export interface IUser extends Document {
   role: String
 }
 
-const UserSchema = new Schema({
-  name: { type: String, required: true, unique: true },
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
+const UserSchema: Schema = new Schema({
+  name: { type: String, required: [true, "Name is required"], unique: [true, "Name is already in use"] },
+  email: { type: String, required: [true, "Email is required"], unique: [true, "Email is already in use"] },
+  password: { type: String, required: [true, "Password is required"] },
   role: { type: String, enum: ["user", "admin"], default: "user" }
 }, { timestamps: true })
 
