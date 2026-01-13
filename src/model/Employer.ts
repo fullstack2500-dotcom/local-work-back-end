@@ -14,9 +14,8 @@ export interface IEmployer extends Document {
 
 const EmployerSchema: Schema = new Schema({
   user: { type: Schema.ObjectId, required: [true, "User is required"] },
-  category: { type: Schema.ObjectId, default: "" },
-  location: { type: Schema.ObjectId, default: "" },
-  rating: { type: Number, default: "N/A" },
+  category: { type: Schema.ObjectId, required: false },
+  location: { type: Schema.ObjectId, required: false },
   status: { type: String, enum: ["Available for work"], default: "Available for work" }, // Available for now
   aboutMe: { type: String },
   skills: { type: [] },

@@ -21,14 +21,14 @@ export const Register = async (req: Request, res: Response) => {
     const hash = await bcrypt.hash(password, 12);
     const newUser = new User({ name, email, password: hash, role })
 
+    // Save the user:
+    await newUser.save()
+
     // If user is an employer:
     if (newUser.role === "employer") {
       const newEmployer = new Employer({ user: newUser._id })
       await newEmployer.save()
     }
-
-    // Save the user:
-    await newUser.save()
 
     return res.status(201).json({
       success: true,
