@@ -10,6 +10,6 @@ const SalaryRangeSchema: Schema = new Schema({
     required: [true, "Salary Range is Required"],
     unique: [true, "Salary Range already exists"]
   }
-})
+}, { timestamps: true })
 
 export default model<ISalaryRange>("Salary Range", SalaryRangeSchema)

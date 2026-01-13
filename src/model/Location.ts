@@ -10,6 +10,6 @@ const LocationSchema: Schema = new Schema({
     required: [true, "Location is required"],
     unique: [true, "Location already exists"]
   }
-})
+}, { timestamps: true })
 
 export default model<ILocation>("Location", LocationSchema)
