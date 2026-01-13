@@ -1,6 +1,7 @@
 import express from "express";
 import connectDB from "./config/db";
 import authRouter from "./route/authentication"
+import protectedRoutes from "./route/protected"
 import helmet from "helmet";
 import cors from "cors"
 
@@ -16,6 +17,7 @@ app.use(express.json())
 
 // Middlewares for authentication and protected and admin:
 app.use("/api/auth", authRouter)
+app.use("/api", protectedRoutes)
 
 const port = process.env.PORT || 5000
 
