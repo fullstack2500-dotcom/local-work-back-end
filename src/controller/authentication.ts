@@ -21,9 +21,6 @@ export const Register = async (req: Request, res: Response) => {
     const hash = await bcrypt.hash(password, 12);
     const newUser = new User({ name, email, password: hash, role })
 
-    // Save the user:
-    await newUser.save()
-
     // If user is an employer:
     if (newUser.role === "employer") {
       const validatedUserId = UserIdSchema.safeParse({ user: newUser._id })
@@ -38,6 +35,8 @@ export const Register = async (req: Request, res: Response) => {
       const newEmployer = new Employer({ user }) // Create new Employer
       await newEmployer.save()
     }
+
+    await newUser.save()
 
     return res.status(201).json({
       success: true,
