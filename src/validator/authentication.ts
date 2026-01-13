@@ -6,7 +6,7 @@ export const RegisterSchema = z.object({
       .string("Name must be a string")
       .min(3, "Name must have at least 3 characters")
       .max(50, "Name must have a maximum of 50 characters")
-      .regex(/^[ A-Za-z0-9_@./#&+-]*$/, "Name must only have one letter, one digit, and one special character"), // https://www.servicenow.com/community/itsm-forum/allow-only-alphanumeric-values-and-special-characters/td-p/712231
+      .regex(/^[A-Za-z0-9]*$/, "Name must only include letters and digits"), // https://www.servicenow.com/community/itsm-forum/allow-only-alphanumeric-values-and-special-characters/td-p/712231
 
   // Email validation:
   email: z
