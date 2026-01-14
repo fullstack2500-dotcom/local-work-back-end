@@ -4,15 +4,15 @@ import z from "zod";
 // Total Workers, Verified Workers, Pending Verification, Report Accounts
 
 export const TotalWorkerSchema = z.object({
-  role: z.literal("worker", "Role must be a worker")
+  role: z.enum(["worker"], "Role must be worker")
 })
 
 export const VerifiedWorkersSchema = z.object({
-  role: z.literal("worker", "Role must be a worker"),
-  status: z.literal("verified", "Role must be verified")
+  role: z.enum(["worker"], "Role must be a worker"),
+  status: z.enum(["verified"], "Role must be verified")
 })
 
 export const PendingVerificationWorkersSchema = z.object({
-  role: z.literal("worker", "Role must be a worker"),
-  status: z.literal("pending", "Role must be pending")
+  role: z.enum(["worker"], "Role must be a worker"),
+  status: z.enum(["pending"], "Role must be pending")
 })
