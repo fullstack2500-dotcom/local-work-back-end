@@ -9,7 +9,7 @@ export interface IExperience extends Document {
 const ExperienceSchema: Schema = new Schema({
   title: { type: String, required: [true, "Experience title is required" ]},
   noOfYears: { type: Number },
-  user: { type: Schema.ObjectId, required: [true, "User ID is required"] }
+  user: { type: Schema.ObjectId, ref: 'User', required: [true, "User ID is required"] }
 }, { timestamps: true })
 
 export default model<IExperience>("Experience", ExperienceSchema)

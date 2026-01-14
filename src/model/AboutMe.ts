@@ -7,7 +7,7 @@ export interface IAboutMe extends Document {
 
 const AboutMeSchema: Schema = new Schema({
   description: { type: String, required: [true, "Description is required"] },
-  user: { type: Schema.ObjectId, required: [true, "User ID is required"] }
+  user: { type: Schema.ObjectId, ref: 'User', required: [true, "User ID is required"] }
 }, { timestamps: true })
 
 export default model<IAboutMe>("AboutMe", AboutMeSchema)

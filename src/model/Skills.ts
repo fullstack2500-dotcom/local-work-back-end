@@ -7,7 +7,7 @@ export interface ISkill extends Document {
 
 const SkillSchema: Schema = new Schema({
   title: { type: String, required: [true, "Skill is required"] },
-  user: { type: Schema.ObjectId, required: [true, "User ID is required"] }
+  user: { type: Schema.ObjectId, ref: 'User', required: [true, "User ID is required"] }
 }, { timestamps: true })
 
 export default model<ISkill>("Skill", SkillSchema)
