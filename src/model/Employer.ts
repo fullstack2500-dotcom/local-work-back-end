@@ -19,8 +19,8 @@ const EmployerSchema: Schema = new Schema({
   status: { type: String, enum: ["Available for work"], default: "Available for work" }, // Available for now
   aboutMe: { type: String },
   skills: { type: [] }, // Done
-  experience: { type: [] },
-  portfolio: { type: [] }
+  experience: { type: [] }, // Done
+  portfolio: { type: [] } // Done
 }, { timestamps: true })
 
 export default model<IEmployer>("Employer", EmployerSchema)
