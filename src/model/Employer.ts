@@ -18,7 +18,7 @@ const EmployerSchema: Schema = new Schema({
   location: { type: Schema.ObjectId, required: false },
   status: { type: String, enum: ["Available for work"], default: "Available for work" }, // Available for now
   aboutMe: { type: String },
-  skills: { type: [] },
+  skills: { type: [] }, // Done
   experience: { type: [] },
   portfolio: { type: [] }
 }, { timestamps: true })
