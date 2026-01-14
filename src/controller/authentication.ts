@@ -1,6 +1,5 @@
 import { Request, Response } from "express";
 import User from "../model/User";
-import Employer from "../model/Employer";
 import bcrypt from "bcryptjs";
 import { RegisterSchema, LoginSchema, UserIdSchema } from "../validator/authentication";
 import jwt from "jsonwebtoken"
@@ -20,21 +19,6 @@ export const Register = async (req: Request, res: Response) => {
   try {
     const hash = await bcrypt.hash(password, 12);
     const newUser = new User({ name, email, password: hash, role })
-
-    // If user is an employer:
-    if (newUser.role === "employer") {
-      const validatedUserId = UserIdSchema.safeParse({ user: newUser._id })
-      if (validatedUserId.error) {
-        const errors = JSON.parse(validatedUserId.error.message)
-        return res.status(400).json({ success: false, message: errors[0].message })
-      }
-
-      // Validated user id:
-      const { user } = validatedUserId.data
-
-      const newEmployer = new Employer({ user }) // Create new Employer
-      await newEmployer.save()
-    }
 
     await newUser.save()
 
