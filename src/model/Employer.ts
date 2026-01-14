@@ -14,10 +14,10 @@ export interface IEmployer extends Document {
 
 const EmployerSchema: Schema = new Schema({
   user: { type: Schema.ObjectId, required: [true, "User is required"] },
-  category: { type: Schema.ObjectId, required: false },
-  location: { type: Schema.ObjectId, required: false },
+  category: { type: Schema.ObjectId, required: false }, // Done
+  location: { type: Schema.ObjectId, required: false }, // Done
   status: { type: String, enum: ["Available for work"], default: "Available for work" }, // Available for now
-  aboutMe: { type: String },
+  aboutMe: { type: String }, // Done
   skills: { type: [] }, // Done
   experience: { type: [] }, // Done
   portfolio: { type: [] } // Done
