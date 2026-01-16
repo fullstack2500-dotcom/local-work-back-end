@@ -7,6 +7,7 @@ const admin = (req: Request, res: Response, next: NextFunction) => {
       message: "Admins only!"
     })
   }
+  next()
 }
 
 export default admin
