@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import User from "../model/User";
 import bcrypt from "bcryptjs";
-import { RegisterSchema, LoginSchema, UserIdSchema, TotalWorkerSchemaMain } from "../validator/authentication";
+import { RegisterSchema, LoginSchema, UserSchema, TotalWorkerSchemaMain } from "../validator/authentication";
 import jwt from "jsonwebtoken"
 
 // Register The User:
@@ -19,7 +19,7 @@ export const Register = async (req: Request, res: Response) => {
   try {
     const hash = await bcrypt.hash(password, 12);
     const newUser = new User({ name, email, password: hash, role })
-
+    
     await newUser.save()
 
     return res.status(201).json({

@@ -40,7 +40,7 @@ export const LoginSchema = z.object({
   password: z.string("Password must be a string")
 })
 
-export const UserIdSchema = z.object({
+export const UserSchema = z.object({
   user: z.instanceof(Object)
 
   // This simply checks that the value passed into the id property is an intance of the ObjectID class. 
