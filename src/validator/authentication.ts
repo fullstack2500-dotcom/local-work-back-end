@@ -46,3 +46,7 @@ export const UserIdSchema = z.object({
   // This simply checks that the value passed into the id property is an intance of the ObjectID class. 
   // Docs are at https://github.com/colinhacks/zod#instanceof
 })
+
+export const TotalWorkerSchemaMain = z.object({
+  role: z.enum(["worker"], "Role must be worker")
+})

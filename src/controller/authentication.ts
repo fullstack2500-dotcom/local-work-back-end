@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import User from "../model/User";
 import bcrypt from "bcryptjs";
-import { RegisterSchema, LoginSchema, UserIdSchema } from "../validator/authentication";
+import { RegisterSchema, LoginSchema, UserIdSchema, TotalWorkerSchemaMain } from "../validator/authentication";
 import jwt from "jsonwebtoken"
 
 // Register The User:
@@ -83,6 +83,48 @@ export const Login = async (req: Request, res: Response) => {
       token
     })
   } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error"
+    })
+  }
+}
+
+// Total Workers:
+export const TotalWorkers = async (req: Request, res: Response) => {
+  // Validate the role:
+  const validatedRole = TotalWorkerSchemaMain.safeParse({ role: "worker" })
+
+  if (validatedRole.error) {
+    const errors = JSON.parse(validatedRole.error.message)
+    return res.status(400).json({
+
+      success: false,
+      message: errors[0].message
+    })
+  }
+
+  const { role } = validatedRole.data
+
+  try {
+    // Total number of workers:
+    const workers = await User.find({ role })
+    const localWorkers = workers.length
+
+    // Check the condition
+    if (localWorkers > 500) { return res.status(200).json({ success: true, localWorkers: "500+" }) }
+    else {
+        return res.status(200).json(
+        { 
+          success: true, 
+          localWorkers 
+        }
+      )
+    }
+
+  } catch (error) {
+    console.error(error)
+
     return res.status(500).json({
       success: false,
       message: "Internal Server Error"
