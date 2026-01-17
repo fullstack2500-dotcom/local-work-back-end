@@ -6,6 +6,8 @@ import {
   PendingVerificationWorkersSchema
 } from "../validator/admin";
 
+
+// Workers:
 export const TotalWorkers = async (req: Request, res: Response) => {
   const validatedRole = TotalWorkerSchema.safeParse({ role: "worker" })
 
