@@ -6,29 +6,40 @@ import jwt from "jsonwebtoken"
 
 // Register The User:
 export const Register = async (req: Request, res: Response) => {
+
   // Validate user information:
   const validatedData = RegisterSchema.safeParse(req.body)
   if (validatedData.error) {
-
     const errors = JSON.parse(validatedData.error.message)
-    return res.status(400).json({ success: false, message: errors[0].message })
+
+    return res.status(400).json(
+      {
+        success: false,
+            message: errors[0].message
+    })
   }
 
+  // Validated Data:
   const { name, email, password, role } = validatedData.data;
 
+  // Try-catch error handling:
   try {
+    // Hash the password and Upload user information to the DB:
     const hash = await bcrypt.hash(password, 12);
     const newUser = new User({ name, email, password: hash, role })
     
-    await newUser.save()
+    await newUser.save() // Save the user
 
+    // Return a success message with a 201 status:
     return res.status(201).json({
       success: true,
-      message: "User Successfully Registered!"
+      message: "User Successfully Registered!" 
     })
   } catch (error: unknown) {
+    // Display the error via the console:
     console.error(error)
     
+    // Return error message by instance:
     if (error instanceof Error) {
       return res.status(400).json({
         success: false,
@@ -46,16 +57,17 @@ export const Register = async (req: Request, res: Response) => {
 
 // Login Controller:
 export const Login = async (req: Request, res: Response) => {
+
   // Validate email and password:
   const validatedData = LoginSchema.safeParse(req.body)
 
   // If there is an error:
   if (validatedData.error) {
     const errors = JSON.parse(validatedData.error.message)
-    return res.status(400).json({
-
-      success: false,
-      message: errors[0].message
+    return res.status(400).json(
+      {
+        success: false,
+            message: errors[0].message
     })
   }
 
@@ -83,6 +95,7 @@ export const Login = async (req: Request, res: Response) => {
       token
     })
   } catch (error) {
+    // Return status of 500:
     return res.status(500).json({
       success: false,
       message: "Internal Server Error"
@@ -92,9 +105,11 @@ export const Login = async (req: Request, res: Response) => {
 
 // Total Workers:
 export const TotalWorkers = async (req: Request, res: Response) => {
+
   // Validate the role:
   const validatedRole = TotalWorkerSchemaMain.safeParse({ role: "worker" })
 
+  // If there is a validation error:
   if (validatedRole.error) {
     const errors = JSON.parse(validatedRole.error.message)
     return res.status(400).json({
@@ -104,6 +119,7 @@ export const TotalWorkers = async (req: Request, res: Response) => {
     })
   }
 
+  // Validated data:
   const { role } = validatedRole.data
 
   try {
@@ -123,8 +139,10 @@ export const TotalWorkers = async (req: Request, res: Response) => {
     }
 
   } catch (error) {
+    // Display the errors via the console
     console.error(error)
 
+    // Return an error message with a status of 500:
     return res.status(500).json({
       success: false,
       message: "Internal Server Error"
