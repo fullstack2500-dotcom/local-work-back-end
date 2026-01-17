@@ -6,40 +6,37 @@ import jwt from "jsonwebtoken"
 
 // Register The User:
 export const Register = async (req: Request, res: Response) => {
-
-  // Validate user information:
   const validatedData = RegisterSchema.safeParse(req.body)
   if (validatedData.error) {
     const errors = JSON.parse(validatedData.error.message)
-
-    return res.status(400).json(
-      {
+    return res.status(400).json({
         success: false,
             message: errors[0].message
     })
   }
 
   // Validated Data:
-  const { name, email, password, role } = validatedData.data;
+  const {
+    name,
+    email,
+    password,
+    role
+  } = validatedData.data;
 
   // Try-catch error handling:
   try {
-    // Hash the password and Upload user information to the DB:
     const hash = await bcrypt.hash(password, 12);
     const newUser = new User({ name, email, password: hash, role })
     
-    await newUser.save() // Save the user
+    await newUser.save()
 
-    // Return a success message with a 201 status:
     return res.status(201).json({
       success: true,
       message: "User Successfully Registered!" 
     })
   } catch (error: unknown) {
-    // Display the error via the console:
     console.error(error)
-    
-    // Return error message by instance:
+
     if (error instanceof Error) {
       return res.status(400).json({
         success: false,
@@ -47,7 +44,6 @@ export const Register = async (req: Request, res: Response) => {
       })
     }
 
-    // Server Error:
     return res.status(500).json({
       success: false,
       message: "Internal Server Error"
@@ -57,45 +53,39 @@ export const Register = async (req: Request, res: Response) => {
 
 // Login Controller:
 export const Login = async (req: Request, res: Response) => {
-
-  // Validate email and password:
   const validatedData = LoginSchema.safeParse(req.body)
-
-  // If there is an error:
   if (validatedData.error) {
     const errors = JSON.parse(validatedData.error.message)
-    return res.status(400).json(
-      {
+    return res.status(400).json({
         success: false,
             message: errors[0].message
     })
   }
 
   // Validated email and password:
-  const { email, password } = validatedData.data
+  const {
+    email,
+    password
+  } = validatedData.data
 
   try {
-    // Verify email if it exists:
     const user = await User.findOne({ email })
     if (!user) return res.status(400).json({ success: false, message: "Invalid credentials!" })
 
-    // Verify password:
     const isMatch = await bcrypt.compare(password, user.password)
     if (!isMatch) return res.status(400).json({ success: false, message: "Invalid credentials!" })
 
-    // Generate the token:
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET as string, {
       expiresIn: '1h'
     })
 
-    // Return success message with token:
     return res.status(200).json({
       success: true,
       message: "Login Successful!",
       token
     })
   } catch (error) {
-    // Return status of 500:
+
     return res.status(500).json({
       success: false,
       message: "Internal Server Error"
@@ -105,11 +95,7 @@ export const Login = async (req: Request, res: Response) => {
 
 // Total Workers:
 export const TotalWorkers = async (req: Request, res: Response) => {
-
-  // Validate the role:
   const validatedRole = TotalWorkerSchemaMain.safeParse({ role: "worker" })
-
-  // If there is a validation error:
   if (validatedRole.error) {
     const errors = JSON.parse(validatedRole.error.message)
     return res.status(400).json({
@@ -119,30 +105,18 @@ export const TotalWorkers = async (req: Request, res: Response) => {
     })
   }
 
-  // Validated data:
   const { role } = validatedRole.data
 
   try {
-    // Total number of workers:
     const workers = await User.find({ role })
     const localWorkers = workers.length
 
-    // Check the condition
     if (localWorkers > 500) { return res.status(200).json({ success: true, localWorkers: "500+" }) }
-    else {
-        return res.status(200).json(
-        { 
-          success: true, 
-              localWorkers 
-        }
-      )
-    }
+    else { return res.status(200).json({ success: true, localWorkers }) }
 
   } catch (error) {
-    // Display the errors via the console
     console.error(error)
 
-    // Return an error message with a status of 500:
     return res.status(500).json({
       success: false,
       message: "Internal Server Error"
