@@ -40,6 +40,7 @@ export const TotalWorkers = async (req: Request, res: Response) => {
 
 
 
+
 // Verified Workers:
 export const VerifiedWorkers = async (req: Request, res: Response) => {
   const validatedRoleAndStatus = VerifiedWorkersSchema.safeParse({ role: "worker", status: "verified" })
@@ -73,6 +74,9 @@ export const VerifiedWorkers = async (req: Request, res: Response) => {
   }
 }
 
+
+
+
 // Pending Verification:
 export const PendingVerification = async (req: Request, res: Response) => {
   try {
@@ -86,6 +90,9 @@ export const PendingVerification = async (req: Request, res: Response) => {
     })
   }
 }
+
+
+
 
 // Reported Accounts:
 export const ReportedAccounts = async (req: Request, res: Response) => {
