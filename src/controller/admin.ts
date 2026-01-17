@@ -37,3 +37,45 @@ export const TotalWorkers = async (req: Request, res: Response) => {
     })
   }
 }
+
+// Verified Workers:
+export const VerifiedWorkers = async (req: Request, res: Response) => {
+  try {
+
+  } catch (error) {
+    console.error(error)
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error"
+    })
+  }
+}
+
+// Pending Verification:
+export const PendingVerification = async (req: Request, res: Response) => {
+  try {
+
+  } catch (error) {
+    console.error(error)
+    
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error"
+    })
+  }
+}
+
+// Reported Accounts:
+export const ReportedAccounts = async (req: Request, res: Response) => {
+  try {
+
+  } catch (error) {
+    console.error(error)
+    
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error"
+    })
+  }
+}
