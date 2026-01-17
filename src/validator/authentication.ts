@@ -1,5 +1,6 @@
 import z from "zod";
 
+// Register User Schema:
 export const RegisterSchema = z.object({
   // Name validation:
   name: z
@@ -24,7 +25,7 @@ export const RegisterSchema = z.object({
       // Retrieved 2026-01-12, License - CC BY-SA 4.0
 
       .regex(
-        /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z_\d@$!%*#?&]{6,16}$/,
+        /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@!%*#?&])[A-Za-z_\d@!%*#?&]{6,16}$/,
         "Password must have one letter, one digit, and one special character"
       ),
 
@@ -35,11 +36,18 @@ export const RegisterSchema = z.object({
   role: z.enum(["worker", "employer", "admin"], "Role must be either worker, employer, admin").optional()
 })
 
+
+
+
+// Login Schema:
 export const LoginSchema = z.object({
   email: z.string("Email must be a string").email("Email must be a valid email"),
   password: z.string("Password must be a string")
 })
 
+
+
+// User Schema:
 export const UserSchema = z.object({
   user: z.instanceof(Object)
 
@@ -47,6 +55,9 @@ export const UserSchema = z.object({
   // Docs are at https://github.com/colinhacks/zod#instanceof
 })
 
+
+
+// Totak Workers Schema for Non-Admins:
 export const TotalWorkerSchemaMain = z.object({
   role: z.enum(["worker"], "Role must be worker")
 })
