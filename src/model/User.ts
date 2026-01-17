@@ -6,7 +6,6 @@ export interface IUser extends Document {
   password: string,
   role: string,
   phoneNumber: string,
-  barangay: string,
   cityMunicipality: string,
   profile: string,
   status: string
@@ -18,7 +17,6 @@ const UserSchema: Schema = new Schema({
   password: { type: String, required: [true, "Password is required"] },
   role: { type: String, enum: ["worker", "employer", "admin"], default: "worker" },
   phoneNumber: { type: String, default: "Worker doesn't have Phone Number" },
-  barangay: { type: String, default: "Worker doesn't have Barangay" },
   cityMunicipality: { type: String, default: "Worker doesn't have City" },
   profile: { type: String, default: "" },
   status: { type: String, enum: ["pending", "verified"], default: "pending" }
