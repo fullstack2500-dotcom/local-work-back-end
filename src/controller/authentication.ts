@@ -51,6 +51,9 @@ export const Register = async (req: Request, res: Response) => {
   }
 }
 
+
+
+
 // Login Controller:
 export const Login = async (req: Request, res: Response) => {
   const validatedData = LoginSchema.safeParse(req.body)
@@ -92,6 +95,9 @@ export const Login = async (req: Request, res: Response) => {
     })
   }
 }
+
+
+
 
 // Total Workers:
 export const TotalWorkers = async (req: Request, res: Response) => {
