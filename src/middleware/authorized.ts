@@ -3,14 +3,11 @@ import { Request, Response, NextFunction } from "express"
 
 
 const authorized = (req: Request, res: Response, next: NextFunction) => {
-  const header = req.headers.authorization
+  const { token } = req.cookies
 
   // If header doesn't exists:
-  if (!header || !header.startsWith("Bearer "))
+  if (!token)
     return res.status(401).json({ success: false, message: "No token, authorization denied" })
-
-  // Make the token:
-  const token = header.split(" ")[1]
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET as string)

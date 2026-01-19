@@ -82,10 +82,12 @@ export const Login = async (req: Request, res: Response) => {
       expiresIn: '1h'
     })
 
+    res.cookie('token', token, { httpOnly: true })
+    console.log(req.cookies)
+
     return res.status(200).json({
       success: true,
-      message: "Login Successful!",
-      token
+      message: "Login Successful!"
     })
   } catch (error) {
 

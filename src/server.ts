@@ -7,16 +7,21 @@ import helmet from "helmet";
 import cors from "cors"
 import slowDown from "express-slow-down";
 import rateLimit from "express-rate-limit";
+import cookieParser from "cookie-parser"
 
 connectDB()
 
 const app = express()
+
+// Allow Cookies:
+app.use(cookieParser())
 
 // Security middlewares:
 app.use(helmet())
 app.use(cors())
 
 app.use(express.json())
+
 
 // Rate Limit:
 const rateLimiter = rateLimit({
