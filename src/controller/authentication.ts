@@ -8,7 +8,7 @@ import jwt from "jsonwebtoken"
 export const Register = async (req: Request, res: Response) => {
   const validatedData = RegisterSchema.safeParse(req.body)
   if (validatedData.error) {
-    const errors = JSON.parse(validatedData.error.message)
+    const errors = validatedData.error.issues
     return res.status(400).json({
         success: false,
             message: errors[0].message
@@ -58,7 +58,7 @@ export const Register = async (req: Request, res: Response) => {
 export const Login = async (req: Request, res: Response) => {
   const validatedData = LoginSchema.safeParse(req.body)
   if (validatedData.error) {
-    const errors = JSON.parse(validatedData.error.message)
+    const errors = validatedData.error.issues
     return res.status(400).json({
         success: false,
             message: errors[0].message
@@ -105,7 +105,7 @@ export const Login = async (req: Request, res: Response) => {
 export const TotalWorkers = async (req: Request, res: Response) => {
   const validatedRole = TotalWorkerSchemaMain.safeParse({ role: "worker" })
   if (validatedRole.error) {
-    const errors = JSON.parse(validatedRole.error.message)
+    const errors = validatedRole.error.issues
     return res.status(400).json({
 
       success: false,

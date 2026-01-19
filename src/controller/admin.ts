@@ -12,7 +12,7 @@ export const TotalWorkers = async (req: Request, res: Response) => {
   const validatedRole = TotalWorkerSchema.safeParse({ role: "worker" })
 
   if (validatedRole.error) {
-    const errors = JSON.parse(validatedRole.error.message)
+    const errors = validatedRole.error.issues
     return res.status(400).json({
       success: false,
       message: errors[0].message
@@ -48,7 +48,7 @@ export const VerifiedWorkers = async (req: Request, res: Response) => {
   const validatedRoleAndStatus = VerifiedWorkersSchema.safeParse({ role: "worker", status: "verified" })
 
   if (validatedRoleAndStatus.error) {
-    const errors = JSON.parse(validatedRoleAndStatus.error.message)
+    const errors = validatedRoleAndStatus.error.issues
     return res.status(400).json({
       success: false,
       message: errors[0].message
