@@ -41,7 +41,7 @@ router.post("/register",
   }),
 
   rateLimit({
-    windowMs: 1 * 60 * 1000,
+    windowMs: 60 * 60 * 1000,
     max: 20,
     message: "Too many accounts were created, please try again after 1 hr.",
     skipFailedRequests: true
@@ -90,7 +90,7 @@ router.post(
   }),
 
   rateLimit({
-    windowMs: 1 * 60 * 1000,
+    windowMs: 60 * 60 * 1000,
     max: 20,
     message: "Too many login attempts, please try again after 1 hr.",
     skipFailedRequests: true
