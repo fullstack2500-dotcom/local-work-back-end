@@ -1,3 +1,4 @@
+// Source: https://mrfreelancer9.medium.com/integrate-aws-s3-with-your-node-js-project-a-step-by-step-guide-f7f160ea8d29
 // Import necessary modules from AWS SDK
 import { S3Client, DeleteObjectsCommand, GetObjectCommand, ListObjectsV2Command, HeadObjectCommand, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
@@ -21,7 +22,8 @@ const s3Client = new S3Client({
 // Export folder names for easier reference
 export const awsFolderNames = {
     sub1: 'sub1',
-    sub2: 'sub2'
+    sub2: 'sub2',
+    logo: 'logo'
 };
 
 
@@ -60,7 +62,7 @@ export const uploadFileToAws = async (fileName: string, filePath: string) => {
 
 
 // Export function to get a signed URL for downloading a file from AWS S3
-export const getFileUrlFromAws = async (fileName: string, expireTime = null) => {
+export const getFileUrlFromAws = async (fileName: string, expireTime: Date | null) => {
     try {
         // Check if the file is available in the AWS S3 bucket
         const check = await isFileAvailableInAwsBucket(fileName); 
@@ -74,7 +76,7 @@ export const getFileUrlFromAws = async (fileName: string, expireTime = null) => 
 
             // Generate a signed URL with expiration time if provided
             if (expireTime != null) {
-                const url = await getSignedUrl(s3Client, command, { expiresIn: expireTime });
+                const url = await getSignedUrl(s3Client, command, { expiresIn: Number(expireTime) });
                 return url;
             } else {
                 // Generate a signed URL without expiration time
