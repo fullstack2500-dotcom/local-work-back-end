@@ -3,9 +3,11 @@ import User from "../model/User";
 import bcrypt from "bcryptjs";
 import { RegisterSchema, LoginSchema, TotalWorkerSchemaMain } from "../validator/authentication";
 import jwt from "jsonwebtoken"
+import { v4 as uuidv4 } from "uuid";
 
 // Register The User:
 export const Register = async (req: Request, res: Response) => {
+  req.body.supabaseId = uuidv4()
   const validatedData = RegisterSchema.safeParse(req.body)
   if (validatedData.error) {
     const errors = validatedData.error.issues
@@ -20,7 +22,8 @@ export const Register = async (req: Request, res: Response) => {
     name,
     email,
     password,
-    role
+    role,
+    supabaseId
   } = validatedData.data;
 
   // Try-catch error handling:

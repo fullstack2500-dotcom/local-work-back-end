@@ -33,7 +33,8 @@ export const RegisterSchema = z.object({
   // Posted by user19910212, modified by community. See post 'Timeline' for change history
   // Retrieved 2026-01-12, License - CC BY-SA 4.0
   // To ensure correct usage of .optional() - https://joodi.medium.com/understanding-zod-schema-validation-with-optional-fields-db4f982f8cec
-  role: z.enum(["worker", "employer", "admin"], "Role must be either worker, employer, admin").optional()
+  role: z.enum(["worker", "employer", "admin"], "Role must be either worker, employer, admin").optional(),
+  supabaseId: z.uuidv4("Supabase must be a valid uuidv4")
 })
 
 
