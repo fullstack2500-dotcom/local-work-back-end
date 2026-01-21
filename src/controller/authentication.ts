@@ -8,6 +8,7 @@ import { v4 as uuidv4 } from "uuid";
 // Register The User:
 export const Register = async (req: Request, res: Response) => {
   req.body.supabaseId = uuidv4()
+  
   const validatedData = RegisterSchema.safeParse(req.body)
   if (validatedData.error) {
     const errors = validatedData.error.issues
