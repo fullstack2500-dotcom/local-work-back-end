@@ -2,8 +2,7 @@ import User from "../model/User";
 import { Request, Response } from "express";
 import {
   TotalWorkerSchema,
-  VerifiedWorkersSchema,
-  PendingVerificationWorkersSchema
+  VerifiedWorkersSchema
 } from "../validator/admin";
 
 
