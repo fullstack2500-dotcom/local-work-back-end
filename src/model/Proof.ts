@@ -1,11 +1,11 @@
-import { Document, Schema, ObjectId, model } from "mongoose";
+import { Schema, ObjectId, model } from "mongoose";
 
-export interface IProof extends Document {
+export interface IProof {
   document: string,
   worker: ObjectId
 }
 
-const ProofSchema: Schema = new Schema({
+const ProofSchema = new Schema<IProof>({
   document: { type: String, default: "" },
   worker: { type: Schema.ObjectId, required: [true, "Worker ID is required"] }
 })

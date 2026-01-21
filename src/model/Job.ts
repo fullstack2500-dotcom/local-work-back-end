@@ -1,6 +1,6 @@
-import { Document, Schema, model, ObjectId } from "mongoose";
+import { Schema, model, ObjectId } from "mongoose";
 
-export interface IJob extends Document {
+export interface IJob {
   title: string,
   description: string,
   requirements: [],
@@ -13,7 +13,7 @@ export interface IJob extends Document {
   review: string
 }
 
-const JobSchema: Schema = new Schema({
+const JobSchema = new Schema<IJob>({
   title: { type: String, required: [true, "Title is required"], unique: [true, "Title already exists"] },
   description: { type: String, required: [true, "Description is required"] },
   requirements: { type: [], default: [] },

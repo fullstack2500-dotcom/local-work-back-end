@@ -1,10 +1,10 @@
-import { Document, Schema, model } from "mongoose";
+import { Schema, model } from "mongoose";
 
-export interface ICategory extends Document {
+export interface ICategory {
   name: string
 }
 
-const CategorySchema: Schema = new Schema({
+const CategorySchema = new Schema<ICategory>({
   name: { type: String, required: [true, "Category is required"], unique: [true, "Category already in use"] }
 }, { timestamps: true })
 

@@ -1,11 +1,11 @@
-import { Document, Schema, ObjectId, model } from "mongoose";
+import { Schema, ObjectId, model } from "mongoose";
 
-export interface IBarangay extends Document {
+export interface IBarangay {
   user: ObjectId,
   name: string
 }
 
-const BarangaySchema: Schema = new Schema({
+const BarangaySchema = new Schema<IBarangay>({
   user: { type: Schema.ObjectId, required: [true, "User ID is Required"] },
   name: { type: String, required: [true, "Barangay Name is required"] }
 }, { timestamps: true })

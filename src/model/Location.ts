@@ -1,10 +1,10 @@
-import { Document, Schema, model } from "mongoose"
+import { Schema, model } from "mongoose"
 
-export interface ILocation extends Document {
+export interface ILocation {
   name: string
 }
 
-const LocationSchema: Schema = new Schema({
+const LocationSchema = new Schema<ILocation>({
   name: {
     type: String,
     required: [true, "Location is required"],

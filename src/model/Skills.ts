@@ -1,11 +1,11 @@
-import { Document, ObjectId, Schema, model } from "mongoose";
+import { Schema, model } from "mongoose";
 
-export interface ISkill extends Document {
+export interface ISkill {
   title: string,
   fileURL: string,
 }
 
-const SkillSchema: Schema = new Schema({
+const SkillSchema = new Schema<ISkill>({
   title: { type: String, required: [true, "Skill is required"] },
   fileURL: { type: String, required: [true, "File URL is required"]}
 }, { timestamps: true })

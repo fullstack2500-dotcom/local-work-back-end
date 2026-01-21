@@ -1,11 +1,11 @@
-import { Document, Schema, ObjectId, model } from "mongoose";
+import { Schema, ObjectId, model } from "mongoose";
 
-export interface IAboutMe extends Document {
+export interface IAboutMe {
   description: string,
   user: ObjectId
 }
 
-const AboutMeSchema: Schema = new Schema({
+const AboutMeSchema = new Schema<IAboutMe>({
   description: { type: String, required: [true, "Description is required"] },
   user: { type: Schema.ObjectId, ref: 'User', required: [true, "User ID is required"] }
 }, { timestamps: true })

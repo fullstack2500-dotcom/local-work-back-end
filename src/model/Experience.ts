@@ -1,12 +1,12 @@
-import { Document, Schema, ObjectId, model } from "mongoose";
+import { Schema, ObjectId, model } from "mongoose";
 
-export interface IExperience extends Document {
+export interface IExperience {
   title: string,
   noOfYears: Number,
   user: ObjectId
 }
 
-const ExperienceSchema: Schema = new Schema({
+const ExperienceSchema = new Schema<IExperience>({
   title: { type: String, required: [true, "Experience title is required" ]},
   noOfYears: { type: Number },
   user: { type: Schema.ObjectId, ref: 'User', required: [true, "User ID is required"] }

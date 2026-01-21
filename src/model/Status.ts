@@ -1,10 +1,10 @@
-import { Document, ObjectId, Schema, model } from "mongoose";
+import { Schema, model } from "mongoose";
 
-export interface IStatus extends Document {
+export interface IStatus {
   status: string
 }
 
-const StatusSchema: Schema = new Schema({
+const StatusSchema = new Schema<IStatus>({
   status: { type: String, enum: ["Available for work"], default: "Available for work" }, // Available for now
 }, { timestamps: true })
 
