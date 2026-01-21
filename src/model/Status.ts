@@ -1,7 +1,7 @@
 import { Schema, model } from "mongoose";
 
 export interface IStatus {
-  status: string
+  status: "Available for work"
 }
 
 const StatusSchema = new Schema<IStatus>({
