@@ -17,7 +17,7 @@ const UserSchema: Schema = new Schema({
   email: { type: String, required: [true, "Email is required"], unique: [true, "Email is already in use"] },
   password: { type: String, required: [true, "Password is required"] },
   role: { type: String, enum: ["worker", "employer", "admin"], default: "worker" },
-  supabaseId: { type: String, required: true },
+  supabaseId: { type: String, default: "" },
   phoneNumber: { type: String, default: "Worker doesn't have Phone Number" },
   cityMunicipality: { type: String, default: "Worker doesn't have City" },
   profile: { type: String, default: "" },
