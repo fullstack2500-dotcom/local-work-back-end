@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import User from "../model/User";
 import bcrypt from "bcryptjs";
-import { RegisterSchema, LoginSchema, UserSchema, TotalWorkerSchemaMain } from "../validator/authentication";
+import { RegisterSchema, LoginSchema, TotalWorkerSchemaMain } from "../validator/authentication";
 import jwt from "jsonwebtoken"
 
 // Register The User:
