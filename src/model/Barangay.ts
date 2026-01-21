@@ -6,6 +6,8 @@ export interface IBarangay {
 }
 
 const BarangaySchema = new Schema<IBarangay>({
-  user: { type: Schema.ObjectId, required: [true, "User ID is Required"] },
+  user: { type: Schema.Types.ObjectId, required: [true, "User ID is Required"] },
   name: { type: String, required: [true, "Barangay Name is required"] }
 }, { timestamps: true })
+
+export default model<IBarangay>("Barangay", BarangaySchema)
