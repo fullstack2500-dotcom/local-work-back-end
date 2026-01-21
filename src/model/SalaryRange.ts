@@ -1,16 +1,16 @@
-import { Schema, ObjectId, model } from "mongoose"
+import { Document, Schema, ObjectId, model } from "mongoose"
 
-export interface ISalaryRange {
+export interface ISalaryRange extends Document {
   name: string,
   hourlyRate: Number,
   user: ObjectId
 }
 
-const SalaryRangeSchema = new Schema<ISalaryRange>({
+const SalaryRangeSchema: Schema = new Schema({
   name: {
     type: String,
     required: [true, "Salary Range is Required"],
-    unique: true
+    unique: [true, "Salary Range must be unique"]
   },
   hourlyRate: {
     type: Number,

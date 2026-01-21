@@ -1,4 +1,4 @@
-import { Schema, model, ObjectId } from "mongoose";
+import { Document, Schema, model, ObjectId } from "mongoose";
 
 export interface IJob {
   title: string,
@@ -8,13 +8,13 @@ export interface IJob {
   rating: Number,
   location: ObjectId,
   salaryPerDay: Number,
-  type: "ongoing" | "approved",
+  type: string,
   status: string,
-  review: string | null
+  review: string
 }
 
-const JobSchema = new Schema<IJob>({
-  title: { type: String, required: [true, "Title is required"], unique: true },
+const JobSchema: Schema = new Schema({
+  title: { type: String, required: [true, "Title is required"], unique: ["Title is already exists"] },
   description: { type: String, required: [true, "Description is required"] },
   requirements: { type: [], default: [] },
   employerInformation: { type: String, required: [true, "Employer Information is required"] },
@@ -22,7 +22,7 @@ const JobSchema = new Schema<IJob>({
   location: { type: Schema.Types.ObjectId },
   salaryPerDay: { type: Number, required: [true, "Salary is required"] },
   type: { type: String, enum: ["ongoing", "approved"], default: "ongoing" },
-  review: { type: String, default: null }
+  review: { type: String, default: "" }
 })
 
 export default model<IJob>("Job", JobSchema)

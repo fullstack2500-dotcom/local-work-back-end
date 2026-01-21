@@ -1,26 +1,26 @@
-import { Schema, model } from "mongoose";
+import { Document, Schema, model } from "mongoose";
 
-export interface IUser {
+export interface IUser extends Document {
   name: string,
   email: string,
   password: string,
-  role: "worker" | "employer" | "admin",
-  supabaseId: string | null,
-  phoneNumber: string | null,
-  cityMunicipality: string | null,
-  profile: string | null,
-  status: "pending" | "verified"
+  role: string,
+  supabaseId: string,
+  phoneNumber: string,
+  cityMunicipality: string,
+  profile: string,
+  status: string
 }
 
-const UserSchema = new Schema<IUser>({
-  name: { type: String, required: [true, "Name is required"], unique: true },
-  email: { type: String, required: [true, "Email is required"], unique: true },
-  password: { type: String, required: [true, "Password is required"], select: false },
+const UserSchema: Schema = new Schema({
+  name: { type: String, required: [true, "Name is required"], unique: [true, "Name is already in use"] },
+  email: { type: String, required: [true, "Email is required"], unique: [true, "Email is already in use"] },
+  password: { type: String, required: [true, "Password is required"] },
   role: { type: String, enum: ["worker", "employer", "admin"], default: "worker" },
-  supabaseId: { type: String, default: null },
-  phoneNumber: { type: String, default: null },
-  cityMunicipality: { type: String, default: null },
-  profile: { type: String, default: null },
+  supabaseId: { type: String, default: "" },
+  phoneNumber: { type: String, default: "" },
+  cityMunicipality: { type: String, default: "" },
+  profile: { type: String, default: "" },
   status: { type: String, enum: ["pending", "verified"], default: "pending" }
 }, { timestamps: true })
 

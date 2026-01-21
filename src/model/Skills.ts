@@ -1,6 +1,6 @@
-import { Schema, model } from "mongoose";
+import { Document, Schema, model } from "mongoose";
 
-export interface ISkill {
+export interface ISkill extends Document {
   title: string,
   fileURL: string,
 }
