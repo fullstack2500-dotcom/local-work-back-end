@@ -17,7 +17,7 @@ const SalaryRangeSchema = new Schema<ISalaryRange>({
     required: true
   },
   user: {
-    type: Schema.ObjectId,
+    type: Schema.Types.ObjectId,
     required: true
   }
 }, { timestamps: true })

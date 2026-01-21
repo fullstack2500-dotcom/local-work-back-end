@@ -9,7 +9,7 @@ export interface IPortfolio {
 const PortfolioSchema = new Schema<IPortfolio>({
   title: { type: String, required: [true, "Title is required"] },
   imageURL: { type: String, required: [true, "Image is required"] },
-  user: { type: Schema.ObjectId, ref: 'User', required: [true, "User ID is required"] }
+  user: { type: Schema.Types.ObjectId, ref: 'User', required: [true, "User ID is required"] }
 })
 
 export default model<IPortfolio>("Portfolio", PortfolioSchema)

@@ -19,7 +19,7 @@ const JobSchema = new Schema<IJob>({
   requirements: { type: [], default: [] },
   employerInformation: { type: String, required: [true, "Employer Information is required"] },
   rating: { type: Number, default: 0 },
-  location: { type: Schema.ObjectId },
+  location: { type: Schema.Types.ObjectId },
   salaryPerDay: { type: Number, required: [true, "Salary is required"] },
   type: { type: String, enum: ["ongoing", "approved"], default: "ongoing" },
   review: { type: String, default: null }

@@ -7,7 +7,7 @@ export interface IProof {
 
 const ProofSchema = new Schema<IProof>({
   document: { type: String, default: null },
-  worker: { type: Schema.ObjectId, required: [true, "Worker ID is required"] }
+  worker: { type: Schema.Types.ObjectId, required: [true, "Worker ID is required"] }
 })
 
 export default model<IProof>("Proof", ProofSchema)
