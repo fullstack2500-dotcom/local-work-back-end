@@ -29,7 +29,7 @@ export const Register = async (req: Request, res: Response) => {
   // Try-catch error handling:
   try {
     const hash = await bcrypt.hash(password, 12);
-    const newUser = new User({ name, email, password: hash, role })
+    const newUser = new User({ name, email, password: hash, role, supabaseId })
     
     await newUser.save()
 
