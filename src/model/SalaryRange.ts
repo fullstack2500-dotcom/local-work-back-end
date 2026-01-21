@@ -10,15 +10,15 @@ const SalaryRangeSchema = new Schema<ISalaryRange>({
   name: {
     type: String,
     required: [true, "Salary Range is Required"],
-    unique: [true, "Salary Range already exists"]
+    unique: true
   },
   hourlyRate: {
     type: Number,
-    required: [true, "Hourly Rate is required"]
+    required: true
   },
   user: {
     type: Schema.ObjectId,
-    required: [true, "User is required"]
+    required: true
   }
 }, { timestamps: true })
 

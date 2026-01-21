@@ -8,13 +8,13 @@ export interface IJob {
   rating: Number,
   location: ObjectId,
   salaryPerDay: Number,
-  type: string,
+  type: "ongoing" | "approved",
   status: string,
-  review: string
+  review: string | null
 }
 
 const JobSchema = new Schema<IJob>({
-  title: { type: String, required: [true, "Title is required"], unique: [true, "Title already exists"] },
+  title: { type: String, required: [true, "Title is required"], unique: true },
   description: { type: String, required: [true, "Description is required"] },
   requirements: { type: [], default: [] },
   employerInformation: { type: String, required: [true, "Employer Information is required"] },
@@ -22,7 +22,7 @@ const JobSchema = new Schema<IJob>({
   location: { type: Schema.ObjectId },
   salaryPerDay: { type: Number, required: [true, "Salary is required"] },
   type: { type: String, enum: ["ongoing", "approved"], default: "ongoing" },
-  review: { type: String, default: "" }
+  review: { type: String, default: null }
 })
 
 export default model<IJob>("Job", JobSchema)

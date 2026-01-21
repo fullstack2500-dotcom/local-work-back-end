@@ -5,7 +5,7 @@ export interface ICategory {
 }
 
 const CategorySchema = new Schema<ICategory>({
-  name: { type: String, required: [true, "Category is required"], unique: [true, "Category already in use"] }
+  name: { type: String, required: [true, "Category is required"], unique: true }
 }, { timestamps: true })
 
 const Category = model<ICategory>("Categorie", CategorySchema)
