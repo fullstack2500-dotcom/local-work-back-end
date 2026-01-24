@@ -11,6 +11,16 @@ export const Dashboard = async (req: Request, res: Response) => {
 
 
 
+// Is the User Logged?:
+export const IsUserLogged = async (req: Request, res: Response) => {
+  return res.status(200).json({
+    success: true,
+    message: "User Successfully Logged"
+  })
+}
+
+
+
 
 // Log Out Controller:
 export const LogOut = async (req: Request, res: Response) => {
