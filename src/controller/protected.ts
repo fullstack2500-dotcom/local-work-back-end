@@ -21,6 +21,29 @@ export const IsUserLogged = async (req: Request, res: Response) => {
 
 
 
+// Add new Job:
+export const CreateJob = async (req: Request, res: Response) => {
+  try {
+    
+  } catch (error: unknown) {
+    console.error(error) // Log the errors
+
+    if (error instanceof Error) {
+      return res.status(400).json({
+        success: false,
+        message: error.message
+      })
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error"
+    })
+  }
+}
+
+
+
 
 // Log Out Controller:
 export const LogOut = async (req: Request, res: Response) => {
