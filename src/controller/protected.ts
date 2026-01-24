@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import User from "../model/User";
 import { JobSchema } from "../validator/protected";
+import xss from "xss";
+import Job from "../model/Job";
 
 // Dashboard:
 export const Dashboard = async (req: Request, res: Response) => {
@@ -33,20 +35,24 @@ export const CreateJob = async (req: Request, res: Response) => {
     })
   }
 
-  const {
-    title,
-    description,
-    postedBy,
-    requirements,
-    location,
-    salaryPerDay,
-    hours,
-    type,
-    status
-  } = validatedData.data
+  // Validated Data
+  const { title, description, postedBy, location, salaryPerDay, hours, type, status, review, isAvailable } = validatedData.data
   
-  try {
+  // Sanitize user input XSS:
+  const sanitizedTitle = xss(title)
+  const sanitizedDescription = xss(description)
+  const sanitizedLocation = xss(location)
+  const sanitizedReview = xss(review)
 
+
+  // Payload that will be utilized:
+  const payload = { title: sanitizedTitle, description: sanitizedDescription, postedBy, location: sanitizedLocation, salaryPerDay, hours, type, status, review: sanitizedReview, isAvailable }
+
+  try {
+    const newJob = new Job(payload)
+    const savedJob = await newJob.save()
+
+    return res.status(201).json({ success: true, message: "Job Successfully Created!", job: savedJob })
   } catch (error: unknown) {
     console.error(error) // Log the errors
 

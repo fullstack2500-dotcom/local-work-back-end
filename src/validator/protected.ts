@@ -1,19 +1,6 @@
 import z from "zod";
 
 
-// Requirements:
-export const RequirementSchema = z.object({
-  requirement: z.string("Requirement must be a string")
-})
-
-// Users:
-export const Users = z.object({
-  user: z.instanceof(Object)
-})
-
-
-
-
 // Job Schema:
 export const JobSchema = z.object({
   title: z
@@ -24,18 +11,8 @@ export const JobSchema = z.object({
           .string("Description must be a string")
           .min(20, "Description must have at least 20 charcters")
           .max(20000, "Description shouldn't exceed 20,000 characters"),
-  postedBy: z.instanceof(Object),
-
-  // This simply checks that the value passed into the id property is an intance of the ObjectID class. 
-  // Docs are at https://github.com/colinhacks/zod#instanceof
-
-
-// Source - https://stackoverflow.com/a
-// Posted by Ark, modified by community. See post 'Timeline' for change history
-// Retrieved 2026-01-24, License - CC BY-SA 4.0
-  requirements: z.array(RequirementSchema),
-  rating: z.number("Rating must be a number"),
-  location: z.instanceof(Object),
+  postedBy: z.string("postedBy must be a string"),
+  location: z.string("Location must be a string"),
   salaryPerDay: z
           .number("Salary per day must be a number")
           .min(500, "Salary must have a minimum of 500 per day")
@@ -44,11 +21,9 @@ export const JobSchema = z.object({
           .number("Hours per week must be a number")
           .min(30, "Hours per week should be at least 30")
           .max(40, "Hours per week shouldn't be more than 40"),
-  type: z.enum(["Part Time", "Full Time"], "Type must be either Part Time, Full Time"),
-  status: z.enum(["ongoing", "approved"], "Status must be either ongoing, approved"),
+  type: z.enum(["Part Time", "Full Time"], "Type must be either Part Time, Full Time").optional(),
+  status: z.enum(["ongoing", "approved"], "Status must be either ongoing, approved").optional(),
+  review: z.string("Review must be a string").min(1, "Review must have at least 1 character").max(2000, "Review shouldn't exceed 2,000"),
   
-  isAvailable: z.boolean("isAvailable must be a boolean: true or false"),
-  accepted: z.array(Users),
-  pending: z.array(Users),
-  saved: z.array(Users)
+  isAvailable: z.boolean("isAvailable must be a boolean: true or false").optional()
 })

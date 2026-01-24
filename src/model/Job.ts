@@ -28,6 +28,7 @@ const JobSchema: Schema = new Schema({
   salaryPerDay: { type: Number, required: [true, "Salary is required"] },
   hours: { type: Number, required: [true, "Hours per day is required"] },
   type: { type: String, enum: ["Part Time", "Full Time"], default: "Full Time" },
+  status: { type: String, enum: ["ongoing", "approved"], default: "ongoing" },
   review: { type: String, default: "" },
   isAvailable: { type: Boolean, default: true },
   accepted: { type: [], default: [] }, // Users that applied this job [If User was accepted, remove their userID via the pending and transfer it to this]
