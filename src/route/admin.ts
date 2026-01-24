@@ -1,7 +1,7 @@
 import { TotalWorkers, VerifiedWorkers } from "../controller/admin";
 import { Router } from "express";
 import authorized from "../middleware/authorized";
-import admin from "../middleware/admin";
+import { admin } from "../middleware/roles";
 
 const router = Router()
 
