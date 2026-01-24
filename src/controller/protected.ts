@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import User from "../model/User";
+import { JobSchema } from "../validator/protected";
 
 // Dashboard:
 export const Dashboard = async (req: Request, res: Response) => {
@@ -23,8 +24,29 @@ export const IsUserLogged = async (req: Request, res: Response) => {
 
 // Add new Job:
 export const CreateJob = async (req: Request, res: Response) => {
+  const validatedData = JobSchema.safeParse(req.body)
+  if (validatedData.error) {
+    const errors = validatedData.error.issues
+    return res.status(400).json({
+      success: false,
+          message: errors[0].message
+    })
+  }
+
+  const {
+    title,
+    description,
+    postedBy,
+    requirements,
+    location,
+    salaryPerDay,
+    hours,
+    type,
+    status
+  } = validatedData.data
+  
   try {
-    
+
   } catch (error: unknown) {
     console.error(error) // Log the errors
 

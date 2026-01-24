@@ -1,6 +1,6 @@
 import { Document, Schema, model, ObjectId } from "mongoose";
 
-export interface IJob {
+export interface IJob extends Document {
   title: string,
   description: string,
   postedBy: ObjectId, // The ObjectId of the Employer that made this Job
@@ -27,7 +27,7 @@ const JobSchema: Schema = new Schema({
   location: { type: Schema.Types.ObjectId },
   salaryPerDay: { type: Number, required: [true, "Salary is required"] },
   hours: { type: Number, required: [true, "Hours per day is required"] },
-  type: { type: String, enum: ["ongoing", "approved"], default: "ongoing" },
+  type: { type: String, enum: ["Part Time", "Full Time"], default: "Full Time" },
   review: { type: String, default: "" },
   isAvailable: { type: Boolean, default: true },
   accepted: { type: [], default: [] }, // Users that applied this job [If User was accepted, remove their userID via the pending and transfer it to this]

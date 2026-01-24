@@ -46,6 +46,7 @@ export const JobSchema = z.object({
           .max(40, "Hours per week shouldn't be more than 40"),
   type: z.enum(["Part Time", "Full Time"], "Type must be either Part Time, Full Time"),
   status: z.enum(["ongoing", "approved"], "Status must be either ongoing, approved"),
+  
   isAvailable: z.boolean("isAvailable must be a boolean: true or false"),
   accepted: z.array(Users),
   pending: z.array(Users),
