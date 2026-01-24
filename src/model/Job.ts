@@ -8,6 +8,7 @@ export interface IJob {
   rating: Number,
   location: ObjectId,
   salaryPerDay: Number,
+  hours: Number,
   type: string,
   status: string,
   review: string
@@ -21,6 +22,7 @@ const JobSchema: Schema = new Schema({
   rating: { type: Number, default: 0 },
   location: { type: Schema.Types.ObjectId },
   salaryPerDay: { type: Number, required: [true, "Salary is required"] },
+  hours: { type: Number, required: [true, "Hours per day is required"] },
   type: { type: String, enum: ["ongoing", "approved"], default: "ongoing" },
   review: { type: String, default: "" }
 })
