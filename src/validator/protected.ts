@@ -1,13 +1,20 @@
 import z from "zod";
 
+
+// Requirements:
 export const RequirementSchema = z.object({
   requirement: z.string("Requirement must be a string")
 })
 
+// Users:
 export const Users = z.object({
   user: z.instanceof(Object)
 })
 
+
+
+
+// Job Schema:
 export const JobSchema = z.object({
   title: z
           .string("Title must be a string")
