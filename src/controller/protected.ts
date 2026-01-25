@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import User from "../model/User";
 import { JobSchema } from "../validator/protected";
 import Job from "../model/Job";
+import { filterXSS, escapeAttrValue } from "xss";
 
 // Dashboard:
 export const Dashboard = async (req: Request, res: Response) => {
@@ -33,10 +34,17 @@ export const createJob = async (req: Request, res: Response) => {
         return res.status(400).json({ success: false, message: error[0].message })
   }
 
+  // Link - https://medium.com/@ferrosful/nodejs-security-unleashed-exploring-xss-attack-8d3a61a01a09:
+  // Sanitize XSS:
+  let { title, description } = validatedJobData.data
+  title = filterXSS(title, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: ['script'] })
+  description = filterXSS(description, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: ['script'] })
+
   try {
     return res.status(200).json({
       success: true,
-      job: validatedJobData.data
+      title,
+      description
     })
   } catch (error: unknown) {
     console.error(error)
