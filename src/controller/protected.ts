@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import User from "../model/User";
 import { JobSchema } from "../validator/protected";
-import xss from "xss";
 import Job from "../model/Job";
 
 // Dashboard:
@@ -33,12 +32,6 @@ export const createJob = async (req: Request, res: Response) => {
     const error = validatedJobData.error.issues
         return res.status(400).json({ success: false, message: error[0].message })
   }
-
-  let { title, description } = validatedJobData.data
-
-  // Sanitize XSS:
-  title = xss(title)
-  description = xss(description)
 
   try {
     return res.status(200).json({
