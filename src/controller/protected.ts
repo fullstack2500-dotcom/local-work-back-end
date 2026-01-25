@@ -37,8 +37,8 @@ export const createJob = async (req: Request, res: Response) => {
   let { title, description } = validatedJobData.data
 
   // Sanitize XSS: Link - https://medium.com/@ferrosful/nodejs-security-unleashed-exploring-xss-attack-8d3a61a01a09:
-  title = filterXSS(title, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: ['script'] })
-  description = filterXSS(description, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: ['script'] })
+  title = filterXSS(title, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
+  description = filterXSS(description, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
 
   // Will log `**Hello,world!**`
   // console.log(`text: ${html.replace(/\\s/g, '')}`);
