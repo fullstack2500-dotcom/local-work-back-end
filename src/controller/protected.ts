@@ -40,6 +40,10 @@ export const createJob = async (req: Request, res: Response) => {
   title = filterXSS(title, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: ['script'] })
   description = filterXSS(description, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: ['script'] })
 
+  // Will log `**Hello,world!**`
+  // console.log(`text: ${html.replace(/\\s/g, '')}`);
+  // Commented for the source
+
   try {
     return res.status(200).json({
       success: true,
