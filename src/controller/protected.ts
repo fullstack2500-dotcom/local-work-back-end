@@ -24,6 +24,35 @@ export const IsUserLogged = async (req: Request, res: Response) => {
 
 
 
+// Create new Job:
+export const createJob = async (req: Request, res: Response) => {
+  req.body.postedBy = req.user.id
+
+  const validatedJobData = JobSchema.safeParse(req.body)
+  if (validatedJobData.error) {
+    const error = validatedJobData.error.issues
+        return res.status(400).json({ success: false, message: error[0].message })
+  }
+
+  let { title, description } = validatedJobData.data
+
+  // Sanitize XSS:
+  title = xss(title)
+  description = xss(description)
+
+  try {
+    return res.status(200).json({
+      success: true,
+      job: validatedJobData.data
+    })
+  } catch (error: unknown) {
+    console.error(error)
+
+    if (error instanceof Error) return res.status(400).json({ success: false, message: error.message })
+    return res.status(500).json({ success: false, message: "Internal Server Error" })
+  }
+}
+
 
 
 // Log Out Controller:
