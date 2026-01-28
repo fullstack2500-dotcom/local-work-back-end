@@ -11,11 +11,11 @@ export interface IJob extends Document {
 
 const JobSchema: Schema = new Schema({
   title: { type: String, required: [true, "Title is required"], unique: [true, "Title must be unique"] },
-  postedBy: { type: Schema.Types.ObjectId, required: [true, "Employer ID is required"] },
+  postedBy: { type: Schema.Types.ObjectId, ref: 'User', required: [true, "Employer ID is required"] },
   type: { type: String, enum: ["Part Time", "Full Time"], default: "Full Time" },
   salaryPerDay: { type: Number, required: [true, "Salary Per Day is required"] },
   hoursNeeded: { type: Number, required: [true, "Hours Needed is required"] },
   description: { type: String, required: [true, "Description is required"] }
-})
+}, { timestamps: true })
 
 export default model<IJob>("Job", JobSchema)
