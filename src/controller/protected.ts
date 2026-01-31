@@ -30,8 +30,8 @@ export const IsUserLogged = async (req: Request, res: Response) => {
 // Workers:
 // Create new Application
 export const createApplication = async (req: Request, res: Response) => {
-  req.body.job = new Types.ObjectId(req.body.job)
-  req.body.worker = new Types.ObjectId(req.user.id)
+  req.body.job = req.body.job
+  req.body.worker = req.user.id
   req.body.role = req.user.role
 
   const validatedApp = AppSchema.safeParse(req.body)
@@ -110,7 +110,7 @@ export const createApplication = async (req: Request, res: Response) => {
 
 // Create new Job:
 export const createJob = async (req: Request, res: Response) => {
-  req.body.postedBy = new Types.ObjectId(req.user.id)
+  req.body.postedBy = req.user.id
 
   const validatedJobData = JobSchema.safeParse(req.body)
   if (validatedJobData.error) {
@@ -149,7 +149,7 @@ export const createJob = async (req: Request, res: Response) => {
 
 // View Job Applications:
 export const viewJobApplications = async (req: Request, res: Response) => {
-  const validatedUserId = UserSchema.safeParse({ user: new Types.ObjectId(req.user.id) })
+  const validatedUserId = UserSchema.safeParse({ user: req.user.id })
   if (validatedUserId.error) {
     const errors = validatedUserId.error.issues
         return res.status(400).json({ success: false, message: errors[0].message })
@@ -185,7 +185,7 @@ export const viewJobApplications = async (req: Request, res: Response) => {
 // Employers:
 // View Posted Jobs:
 export const viewPostedJobs = async (req: Request, res: Response) => {
-  const validatedUserId = UserSchema.safeParse({ user: new Types.ObjectId(req.user.id) })
+  const validatedUserId = UserSchema.safeParse({ user: req.user.id })
   if (validatedUserId.error) {
     const error = validatedUserId.error.issues
         return res.status(400).json({ success: false, message: error[0].message })

@@ -7,7 +7,7 @@ export const JobSchema = z.object({
           .string("Job must be a string")
           .min(3, "Title must have at least 3 characters")
           .max(60, "Title shouldn't exceed 60 characters"),
-  postedBy: z.instanceof(Object),
+  postedBy: z.string("Posted By must be the string of the user ID"),
   type: z.enum(["Part Time", "Full Time"], "Type must be Part Time | Full Time").optional(),
   salaryPerDay: z
           .int("Salary Per Day must be an integer")
@@ -27,15 +27,15 @@ export const JobSchema = z.object({
 
 // Job Overview Schema:
 export const JobOverviewSchema = z.object({
-  job: z.instanceof(Object)
+  job: z.string("Job ID must be a string")
 })
 
 
 
 // Application Schema:
 export const AppSchema = z.object({
-  job: z.instanceof(Object),
-  worker: z.instanceof(Object),
+  job: z.string("Job must be a string"),
+  worker: z.string("Worker must be a string"),
   role: z.enum(["worker"], "Workers Only!"),
   subject: z
             .string("Subject must be a string")

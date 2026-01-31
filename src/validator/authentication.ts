@@ -50,10 +50,7 @@ export const LoginSchema = z.object({
 
 // User Schema:
 export const UserSchema = z.object({
-  user: z.instanceof(Object)
-
-  // This simply checks that the value passed into the id property is an intance of the ObjectID class. 
-  // Docs are at https://github.com/colinhacks/zod#instanceof
+  user: z.string("User ID must be a string")
 })
 
 

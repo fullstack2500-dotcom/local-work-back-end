@@ -2,7 +2,7 @@ import { Document, Schema, ObjectId, model } from "mongoose";
 
 export interface IJob extends Document {
   title: string,
-  postedBy: ObjectId,
+  postedBy: string,
   type: string,
   salaryPerDay: Number,
   hoursNeeded: Number,
