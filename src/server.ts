@@ -18,7 +18,10 @@ app.use(cookieParser())
 
 // Security middlewares:
 app.use(helmet())
-app.use(cors())
+app.use(cors({
+  origin: 'http://localhost:8080',
+  credentials: true
+}))
 
 app.use(express.json())
 

@@ -3,12 +3,17 @@ import User from "../model/User";
 import bcrypt from "bcryptjs";
 import { RegisterSchema, LoginSchema, TotalWorkerSchemaMain } from "../validator/authentication";
 import jwt from "jsonwebtoken"
-import { v4 as uuidv4 } from "uuid";
+import { instanceErrors, mainError } from "../errors/showErrors";
+
+
+
+
+
+
+
 
 // Register The User:
 export const Register = async (req: Request, res: Response) => {
-  req.body.supabaseId = uuidv4()
-  
   const validatedData = RegisterSchema.safeParse(req.body)
   if (validatedData.error) {
     const errors = validatedData.error.issues
@@ -18,42 +23,33 @@ export const Register = async (req: Request, res: Response) => {
     })
   }
 
-  // Validated Data:
-  const {
-    name,
-    email,
-    password,
-    role,
-    supabaseId
-  } = validatedData.data;
+  const { name, email, phoneNumber, password, role, skills, photo, resume, businessPermit } = validatedData.data;
 
-  // Try-catch error handling:
   try {
     const hash = await bcrypt.hash(password, 12);
-    const newUser = new User({ name, email, password: hash, role, supabaseId })
+    const newUser = new User({ name, email, phoneNumber, password: hash, role, skills, files: {
+      photo, resume
+    }, businessPermit })
     
     await newUser.save()
 
     return res.status(201).json({
       success: true,
-      message: "User Successfully Registered!" 
+      message: "User Successfully Registered!"
     })
+
   } catch (error: unknown) {
-    console.error(error)
 
-    if (error instanceof Error) {
-      return res.status(400).json({
-        success: false,
-        message: error.message
-      })
-    }
-
-    return res.status(500).json({
-      success: false,
-      message: "Internal Server Error"
-    })
+    instanceErrors(
+      error,
+      res
+    )
   }
 }
+
+
+
+
 
 
 
@@ -61,6 +57,7 @@ export const Register = async (req: Request, res: Response) => {
 // Login Controller:
 export const Login = async (req: Request, res: Response) => {
   const validatedData = LoginSchema.safeParse(req.body)
+
   if (validatedData.error) {
     const errors = validatedData.error.issues
     return res.status(400).json({
@@ -72,21 +69,29 @@ export const Login = async (req: Request, res: Response) => {
   // Validated email and password:
   const {
     email,
-    password
+    password,
+    role
   } = validatedData.data
 
   try {
     const user = await User.findOne({ email })
-    if (!user) return res.status(400).json({ success: false, message: "Invalid credentials!" })
+    if (!user) return res.status(400).json({ success: false, message: "Incorrect Email / Password" })
 
     const isMatch = await bcrypt.compare(password, user.password)
-    if (!isMatch) return res.status(400).json({ success: false, message: "Invalid credentials!" })
+    if (!isMatch) return res.status(400).json({ success: false, message: "Incorrect Email / Password" })
+
+    const verify = await User.findOne({ email: user.email, role })
+    if (!verify) return res.status(400).json({ success: false, message: "Incorrect Email / Password" })
 
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET as string, {
       expiresIn: '1h'
     })
 
-    res.cookie('token', token, { httpOnly: true })
+    res.cookie('token', token, {
+      expires: new Date(Date.now() + 60 * 60 * 1000),
+      httpOnly: true,
+      sameSite: 'strict'
+    })
     console.log(req.cookies)
 
     return res.status(200).json({
@@ -95,12 +100,15 @@ export const Login = async (req: Request, res: Response) => {
     })
   } catch (error) {
 
-    return res.status(500).json({
-      success: false,
-      message: "Internal Server Error"
-    })
+    mainError(
+      error, res
+    )
   }
 }
+
+
+
+
 
 
 
@@ -108,6 +116,7 @@ export const Login = async (req: Request, res: Response) => {
 // Total Workers:
 export const TotalWorkers = async (req: Request, res: Response) => {
   const validatedRole = TotalWorkerSchemaMain.safeParse({ role: "worker" })
+
   if (validatedRole.error) {
     const errors = validatedRole.error.issues
     return res.status(400).json({
@@ -127,11 +136,8 @@ export const TotalWorkers = async (req: Request, res: Response) => {
     else { return res.status(200).json({ success: true, localWorkers }) }
 
   } catch (error) {
-    console.error(error)
-
-    return res.status(500).json({
-      success: false,
-      message: "Internal Server Error"
-    })
+    mainError(
+      error, res
+    )
   }
 }

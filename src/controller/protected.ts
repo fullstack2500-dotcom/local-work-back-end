@@ -1,11 +1,15 @@
 import { Request, Response } from "express";
 import User from "../model/User";
-import { AppSchema, JobOverviewSchema, JobSchema } from "../validator/protected";
+import { AppSchema, Company_IDSchema, Location_IDSchema, CompanySchema, JobOverviewSchema, JobSchema, LocationSchema, SkillSchema } from "../validator/protected";
 import Job from "../model/Job";
 import { filterXSS } from "xss";
 import Application from "../model/Application";
 import { UserSchema } from "../validator/authentication";
 import { Types } from "mongoose";
+import Location from "../model/Location";
+import { instanceErrors, mainError } from "../errors/showErrors";
+import Skills from "../model/Skills";
+import Company from "../model/Company";
 
 // Dashboard:
 export const Dashboard = async (req: Request, res: Response) => {
@@ -181,6 +185,27 @@ export const viewJobApplications = async (req: Request, res: Response) => {
 
 
 
+// View Jobs:
+export const viewJobs = async (req: Request, res: Response) => {
+  try {
+    const jobs = await Job.find().populate('companyName').populate('location').sort({ createdAt: -1 })
+    if (jobs.length < 1) return res.status(200).json({ success: true, message: "No jobs available" })
+
+    return res.status(200).json({
+      success: true,
+      jobs
+    })
+  } catch (error) {
+    
+    mainError(
+      error, res
+    )
+  }
+}
+
+
+
+
 
 // Employers:
 // View Posted Jobs:
@@ -195,7 +220,7 @@ export const viewPostedJobs = async (req: Request, res: Response) => {
 
   try {
     const jobs = await Job.find({ postedBy: user }).sort({ createdAt: -1 })
-    if (!jobs) return res.status(200).json({ success: true, message: "No jobs available" })
+    if (jobs.length === 0) return res.status(200).json({ success: true, message: "No jobs available" })
 
     return res.status(200).json({
       success: true,
@@ -248,6 +273,121 @@ export const viewJobOverview = async (req: Request, res: Response) => {
 
 
 
+// Add Company:
+export const addCompany = async (req: Request, res: Response) => {
+  const validatedData = CompanySchema.safeParse(req.body);
+  if (validatedData.error) {
+    const errors = validatedData.error.issues;
+    return res.status(400).json({ success: false, message: errors[0].message })
+  }
+
+  const { title } = validatedData.data
+
+  // Sanitize XSS Title:
+  const sanitizedTitle = filterXSS(title, { 
+    whiteList: {},
+        stripIgnoreTag: true,
+            stripIgnoreTagBody: true
+  })
+
+  try {
+    const newCompany = new Company({ title: sanitizedTitle })
+    await newCompany.save()
+
+    return res.status(201).json({
+      success: true,
+      message: "Company successfully created!"
+    })
+  } catch (error) {
+
+    instanceErrors(
+      error,
+      res
+    )
+  }
+}
+
+
+
+
+
+// Location:
+export const AddLocation = async (req: Request, res: Response) => {
+  const validatedData = LocationSchema.safeParse(req.body)
+  if (validatedData.error) {
+    const errors = validatedData.error.issues
+    return res.status(400).json({ success: false, message: errors[0].message })
+  }
+
+  const { name } = validatedData.data
+
+  // Sanitize XSS Title:
+  const sanitizedName = filterXSS(name, { 
+    whiteList: {},
+        stripIgnoreTag: true,
+            stripIgnoreTagBody: true
+  })
+  
+  try {
+    const newLocation = new Location({ name: sanitizedName })
+    await newLocation.save()
+
+    return res.status(201).json({ success: true, message: "Location Successfully Created!" })
+  } catch (error) {
+
+    instanceErrors(
+      error,
+      res
+    )
+  }
+}
+
+
+
+
+
+
+// Add Skill:
+export const AddSkill = async (req: Request, res: Response) => {
+  const validatedData = SkillSchema.safeParse(req.body)
+  if (validatedData.error) {
+    const errors = validatedData.error.issues
+    return res.status(400).json({ success: false, message: errors[0].message })
+  }
+
+  const { title, job } = validatedData.data
+
+  // Sanitize XSS Title:
+  const sanitizedTitle = filterXSS(title, { 
+    whiteList: {},
+        stripIgnoreTag: true,
+            stripIgnoreTagBody: true
+  })
+
+  try {
+    const findJob = await Job.findOne({ _id: job })
+    if (!findJob) return res.status(404).json({ success: false, message: "Job doesn't exist" })
+    const newSkill = new Skills({ title: sanitizedTitle, job })
+    await newSkill.save()
+
+    return res.status(201).json({
+      success: true,
+      message: "Skill successfully Added!"
+    })
+
+  } catch (error) {
+
+    instanceErrors(
+      error,
+      res
+    )
+  }
+}
+
+
+
+
+
 
 
 
@@ -267,3 +407,8 @@ export const LogOut = async (req: Request, res: Response) => {
     })
   }
 }
+
+
+
+
+
