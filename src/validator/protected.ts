@@ -7,28 +7,33 @@ export const JobSchema = z.object({
           .string("Job must be a string")
           .min(3, "Title must have at least 3 characters")
           .max(60, "Title shouldn't exceed 60 characters"),
-  companyName: z.string("Company Name must be a string"),
-  company: z.string("Company should be a string").optional(),
-  postedBy: z.string("Posted By must be the string of the user ID"),
-  location: z.string("Location must be a string").optional(),
-  locationName: z.string("Location Name should be a string"),
+  company: z.string("Company must be a string"),
+  posted: z.string("Posted By must be the string of the user ID"),
+  location: z.string("Location must be a string"),
   type: z.enum(["Part-Time", "Full-Time"], "Type must be Part-Time | Full-Time").optional(),
-  salaryRangeMin: z
-          .int("Salary Range Min must be an integer")
-          .min(200, "Salary Range Min must be at least Php 200.00")
-          .max(2000, "Salary per day shouldn't exceed Php 1,000.00"),
-  salaryRangeMax: z
-          .int("Salary Range Max must be an integer")
-          .min(250, "Salary Range Max must be at least Php 250.00")
-          .max(5000, "Salary Range Max shouldn't exceed Php 2,000.00"),
-  hoursNeeded: z
-          .int("Hours Per Week must be an integer")
-          .min(30, "Hours Per Week must be at least 30")
-          .max(40, "Hours Per Week must be 40 at most"),
+  salary: z.string("Salary must be a string"),
   description: z
           .string("Description must be a string")
           .min(50, "Description must be at least 50 characters")
-          .max(900, "Description shouldn't exceed 900 characters")
+          .max(900, "Description shouldn't exceed 900 characters"),
+  tags: z.array(
+    z.string("Tag must be a string"),
+    "Tags must be an array"
+  ),
+  requirements: z.array(
+    z.string("Requirement must be a string"),
+    "Requirements must be an array"
+  ),
+  benefits: z.array(
+    z.string("Benefits must be a string"),
+    "Benefits must be an array"
+  ),
+  schedule: z.string("Schedule must be a string"),
+  startDate: z.string("Please enter a date").optional(),
+  positions: z.int("Positions must be an integer"),
+  applyBefore: z.string("Apply Before must be a string"),
+  email: z.string("Contact Email must be a string").email("Contact Email must be a valid email"),
+  phone: z.string("Contact Phone must be a string").regex(/^(\+639)\d{9}$/, "Please enter a valid phone number, ex. +639...")
 })
 
 
@@ -86,8 +91,21 @@ export const LocationSchema = z.object({
 })
 
 
+// Add Worker ID:
+export const ViewProfile = z.object({
+  id: z.string("Worker ID must be a string"),
+  role: z.enum(["worker", "employer"], "Role must be worker / employer")
+})
+
+
+// Add Employer ID:
+export const employerIdSchema = z.object({
+  id: z.string("Employer ID must be a string"),
+  role: z.enum(["employer"], "Role must be employer")
+})
+
+
 // Add Skill:
-export const SkillSchema = z.object({
-  title: z.string("Title must be a string"),
-  job: z.string("Job must be a string")
+export const TagSchema = z.object({
+  title: z.string("Title must be a string")
 })

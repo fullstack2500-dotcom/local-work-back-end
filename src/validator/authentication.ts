@@ -34,7 +34,7 @@ export const RegisterSchema = z.object({
       .string("Phone Number must be a string")
       .regex(/^(\+639)\d{9}$/, "Please enter a valid phone number, ex. +639..."),
 
-  skills: z.string("Skills must be a string"),
+  skills: z.string("Skills must be a string").optional(),
 
   
 

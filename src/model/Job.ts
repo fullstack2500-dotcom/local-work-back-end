@@ -2,30 +2,47 @@ import { Document, Schema, ObjectId, model } from "mongoose";
 
 export interface IJob extends Document {
   title: string,
-  companyName: string,
   company: string,
-  postedBy: string,
+  posted: string,
   location: string,
-  locationName: string,
   type: string,
-  salaryRangeMin: Number,
-  salaryRangeMax: Number,
+  salary: string,
   hoursNeeded: Number,
-  description: string
+  description: string,
+  tags: string[],
+  requirements: string[],
+  benefits: string[],
+  schedule: string,
+  startDate: string,
+  positions: Number,
+  applyBefore: string,
+  contactEmail: string,
+  contactPhone: string
 }
 
 const JobSchema: Schema = new Schema({
   title: { type: String, required: [true, "Title is required"], unique: [true, "Title must be unique"] },
-  companyName: { type: Schema.Types.ObjectId, ref: 'Companie', required: [true, "Company is required"] },
-  company: { type: String },
-  postedBy: { type: Schema.Types.ObjectId, ref: 'User', required: [true, "Employer ID is required"] },
+  company: { type: Schema.Types.ObjectId, ref: 'Companie', required: [true, "Company is required"] },
+  posted: { type: Schema.Types.ObjectId, ref: 'User', required: [true, "Employer ID is required"] },
   location: { type: Schema.Types.ObjectId, ref: 'Location', required: [true, "Location is required"] },
-  locationName: { type: String },
   type: { type: String, enum: ["Part-Time", "Full-Time"], default: "Full-Time" },
-  salaryRangeMin: { type: Number, required: [true, "Salary Range Min is required"] },
-  salaryRangeMax: { type: Number, required: [true, "Salary Range Max is required"] },
-  hoursNeeded: { type: Number, required: [true, "Hours Needed is required"] },
-  description: { type: String, required: [true, "Description is required"] }
+  salary: { type: String, required: [true, "Salary is required"] },
+  description: { type: String, required: [true, "Description is required"] },
+  tags: [
+    { type: Schema.Types.ObjectId, ref: "Tag" }
+  ],
+  requirements: [
+    { type: String }
+  ],
+  benefits: [
+    { type: String }
+  ],
+  schedule: { type: String },
+  startDate: { type: String, default: "Immediate" },
+  positions: { type: Number, required: [true, "Number of Positions required"] },
+  applyBefore: { type: String },
+  email: { type: String },
+  phone: { type: String }
 }, { timestamps: true })
 
 export default model<IJob>("Job", JobSchema)

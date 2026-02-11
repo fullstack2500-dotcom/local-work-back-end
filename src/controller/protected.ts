@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import User from "../model/User";
-import { AppSchema, Company_IDSchema, Location_IDSchema, CompanySchema, JobOverviewSchema, JobSchema, LocationSchema, SkillSchema } from "../validator/protected";
+import { AppSchema, CompanySchema, JobOverviewSchema, JobSchema, LocationSchema, TagSchema, employerIdSchema, ViewProfile } from "../validator/protected";
 import Job from "../model/Job";
 import { filterXSS } from "xss";
 import Application from "../model/Application";
@@ -8,8 +8,9 @@ import { UserSchema } from "../validator/authentication";
 import { Types } from "mongoose";
 import Location from "../model/Location";
 import { instanceErrors, mainError } from "../errors/showErrors";
-import Skills from "../model/Skills";
+import Tag from "../model/Tag";
 import Company from "../model/Company";
+import { success } from "zod";
 
 // Dashboard:
 export const Dashboard = async (req: Request, res: Response) => {
@@ -114,7 +115,22 @@ export const createApplication = async (req: Request, res: Response) => {
 
 // Create new Job:
 export const createJob = async (req: Request, res: Response) => {
-  req.body.postedBy = req.user.id
+  req.body.posted = req.user.id
+
+  const validatedUser = employerIdSchema.safeParse({ id: req.body.posted, role: req.user.role })
+  if (validatedUser.error) {
+    const error = validatedUser.error.issues
+        return res.status(400).json({ success: false, message: error[0].message })
+  }
+
+  const { id, role } = validatedUser.data
+
+  const details = await User.findOne({ _id: id, role })
+  if (!details) return res.status(404).json({ success: false, message: "Employer not found" })
+  console.log(details.email, details.phoneNumber)
+
+  req.body.email = details.email
+  req.body.phone = details.phoneNumber
 
   const validatedJobData = JobSchema.safeParse(req.body)
   if (validatedJobData.error) {
@@ -127,10 +143,24 @@ export const createJob = async (req: Request, res: Response) => {
   // Sanitize XSS: Link - https://medium.com/@ferrosful/nodejs-security-unleashed-exploring-xss-attack-8d3a61a01a09:
   payload.title = filterXSS(payload.title, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
   payload.description = filterXSS(payload.description, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
-
+  payload.schedule = filterXSS(payload.schedule, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
+  payload.applyBefore = filterXSS(payload.applyBefore, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
+  payload.salary = filterXSS(payload.salary, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
   // Will log `**Hello,world!**`
   // console.log(`text: ${html.replace(/\\s/g, '')}`);
   // Commented for the source
+
+  for (let i = 0; i < payload.tags.length; i++) {
+    payload.tags[i] = filterXSS(payload.tags[i], { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
+  }
+
+  for (let i = 0; i < payload.requirements.length; i++) {
+    payload.requirements[i] = filterXSS(payload.requirements[i], { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
+  }
+
+  for (let i = 0; i < payload.benefits.length; i++) {
+    payload.benefits[i] = filterXSS(payload.benefits[i], { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
+  }
 
   try {
     const newJob = new Job(payload)
@@ -188,7 +218,7 @@ export const viewJobApplications = async (req: Request, res: Response) => {
 // View Jobs:
 export const viewJobs = async (req: Request, res: Response) => {
   try {
-    const jobs = await Job.find().populate('companyName').populate('location').sort({ createdAt: -1 })
+    const jobs = await Job.find().populate('company').populate('location').sort({ createdAt: -1 })
     if (jobs.length < 1) return res.status(200).json({ success: true, message: "No jobs available" })
 
     return res.status(200).json({
@@ -348,14 +378,14 @@ export const AddLocation = async (req: Request, res: Response) => {
 
 
 // Add Skill:
-export const AddSkill = async (req: Request, res: Response) => {
-  const validatedData = SkillSchema.safeParse(req.body)
+export const AddTag = async (req: Request, res: Response) => {
+  const validatedData = TagSchema.safeParse(req.body)
   if (validatedData.error) {
     const errors = validatedData.error.issues
     return res.status(400).json({ success: false, message: errors[0].message })
   }
 
-  const { title, job } = validatedData.data
+  const { title } = validatedData.data
 
   // Sanitize XSS Title:
   const sanitizedTitle = filterXSS(title, { 
@@ -365,19 +395,46 @@ export const AddSkill = async (req: Request, res: Response) => {
   })
 
   try {
-    const findJob = await Job.findOne({ _id: job })
-    if (!findJob) return res.status(404).json({ success: false, message: "Job doesn't exist" })
-    const newSkill = new Skills({ title: sanitizedTitle, job })
-    await newSkill.save()
+    
+    const newTag = new Tag({ title: sanitizedTitle })
+    await newTag.save()
 
     return res.status(201).json({
       success: true,
-      message: "Skill successfully Added!"
+      message: "Tag successfully Added!"
     })
 
   } catch (error) {
 
     instanceErrors(
+      error,
+      res
+    )
+  }
+}
+
+
+
+
+
+export const viewProfile = async (req: Request, res: Response) => {
+  const validatedUser = ViewProfile.safeParse({ id: req.user.id, role: req.user.role })
+  if (validatedUser.error) {
+    return res.status(400).json({ success: false, message: "Failed to validated User ID"} );
+  }
+
+  const { id, role } = validatedUser.data
+  try {
+    const viewProfile = await User.findOne({ _id: id, role }).select("-password").exec()
+    if (!viewProfile) return res.status(404).json({ success: false, message: "User not found" });
+
+    return res.status(200).json({
+      success: true,
+      user: viewProfile
+    })
+  } catch (error) {
+
+    mainError(
       error,
       res
     )
@@ -407,8 +464,3 @@ export const LogOut = async (req: Request, res: Response) => {
     })
   }
 }
-
-
-
-
-

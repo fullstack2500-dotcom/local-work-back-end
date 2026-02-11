@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { Dashboard, IsUserLogged, createJob, LogOut, createApplication, viewPostedJobs, viewJobOverview, viewJobApplications, addCompany, AddLocation, AddSkill, viewJobs } from "../controller/protected";
+import { Dashboard, IsUserLogged, createJob, LogOut, createApplication, viewPostedJobs, viewJobOverview, viewJobApplications, addCompany, AddLocation, AddTag, viewJobs, viewProfile } from "../controller/protected";
 import authorized from "../middleware/authorized";
 import { employers, worker } from "../middleware/roles";
 
@@ -12,6 +12,7 @@ router.get("/isUserLogged", authorized, IsUserLogged)
 // GET Requests [Workers]:
 router.get("/applications", authorized, worker, viewJobApplications)
 router.get("/viewJobs", authorized, worker, viewJobs)
+router.get("/viewProfile", authorized, worker, viewProfile)
 
 // GET Requests [Employers]:
 router.get("/viewPostedJobs", authorized, employers, viewPostedJobs)
@@ -24,7 +25,7 @@ router.post("/createApp", authorized, worker, createApplication)
 router.post("/createJob", authorized, employers, createJob)
 router.post("/addCompany", authorized, employers, addCompany)
 router.post("/addLocation", authorized, employers, AddLocation)
-router.post("/addSkill", authorized, employers, AddSkill)
+router.post("/addTag", authorized, employers, AddTag)
 
 // LogOut Controller:
 router.post("/logout", authorized, LogOut)

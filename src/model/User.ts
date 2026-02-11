@@ -15,13 +15,21 @@ export interface IUser extends Document {
   password: string,
   phoneNumber: string,
   role: string,
-  skills: string,
+  skills: string[],
   files: {
     photo: string,
     resume: string
   }
   businessPermit: string,
-  companyRegistration: string
+  companyRegistration: string,
+  jobTitle: string,
+  location: string,
+  yearsOfExperience: string,
+  availability: string,
+  expected_salary: string,
+  about_me: string,
+  jobs_applied: Number,
+  interviews: Number
 }
 
 const UserSchema: Schema = new Schema({
@@ -30,13 +38,23 @@ const UserSchema: Schema = new Schema({
   password: { type: String, required: [true, "Password is required"] },
   phoneNumber: { type: String, required: [true, "Phone Number is required"], default: "" },
   role: { type: String, enum: ["worker", "employer", "admin"], default: "worker" },
-  skills: { type: String, required: [true, "Skills are required"] },
+  skills: [
+    { type: String }
+  ],
   files: {
     photo: { type: String, default: "" },
     resume: { type: String, default: "" }
   },
   businessPermit: { type: String, default: "" },
-  companyRegistration: { type: String, default: "" }
+  companyRegistration: { type: String, default: "" },
+  jobTitle: { type: String, default: "N/A" },
+  location: { type: String, default: "No Specified Location" },
+  yearsOfExperience: { type: String, default: "N/A" },
+  availability: { type: String, enum: ["Full-Time", "Part-Time", "Contract", "Flexible"], default: "Full-Time" },
+  expected_salary: { type: String, default: "N/A" },
+  about_me: { type: String, default: "N/A" },
+  jobs_applied: { type: Number, default: 0 },
+  interviews: { type: Number, default: 0 }
 }, { timestamps: true })
 
 export default model<IUser>("User", UserSchema)
