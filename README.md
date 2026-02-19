@@ -140,6 +140,45 @@ router.get("/workers/declined", authorized, admin, DeclinedWorkers)
 export default router
 ```
 
+## Access Control Roles: ```/src/middleware/roles.ts``` ##
+```
+import { Request, Response, NextFunction } from "express"
+
+
+// If the user role === "admin":
+export const admin = (req: Request, res: Response, next: NextFunction) => {
+  if (req.user.role !== "admin") {
+    return res.status(403).json({
+      success: false,
+      message: "Admins only!"
+    })
+  }
+  next()
+}
+
+// If the user role === "worker":
+export const worker = (req: Request, res: Response, next: NextFunction) => {
+  if (req.user.role !== "worker") {
+    return res.status(403).json({
+      success: false,
+      message: "Workers only!"
+    })
+  }
+  next()
+}
+
+// If the user role === "employer":
+export const employers = (req: Request, res: Response, next: NextFunction) => {
+  if (req.user.role !== "employer") {
+    return res.status(403).json({
+      success: false,
+      message: "Employers only!"
+    })
+  }
+  next()
+}
+```
+
 
 # Deployment Guide:
 - For deployment, we are utilizing Github for pushing updates via the repository.
@@ -149,6 +188,7 @@ export default router
 # Troubleshooting Session:
 - For Troubleshooting, we console.log the errors and we don't display error messages via the res.json to ensure that attackers won't have access to the details of the application.
 - We implemented Try/catch error handling & we utilized a file that handles errors to reduce redundant codes.
+
 ## Code for Error Handling: ```/src/errors/showErrors.ts```
 ```
 import { Response } from "express"
