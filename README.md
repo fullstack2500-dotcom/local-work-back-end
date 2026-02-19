@@ -147,8 +147,8 @@ export default router
 - Link for download guide: ```[http://docs.github.com](https://docs.github.com/en/desktop/installing-and-authenticating-to-github-desktop/installing-github-desktop)```
 
 # Troubleshooting Session:
-- For Troubleshooting, we are still going to add try/catch error handling via the AdminRegister & Login Controllers.
-- Although for WorkerRegister and some controllers, try/catch error handling has been implemented, and we even utilized a file that handles errors to reduce redundant codes.
+- For Troubleshooting, we console.log the errors and we don't display error messages via the res.json to ensure that attackers won't have access to the details of the application.
+- We implemented Try/catch error handling & we utilized a file that handles errors to reduce redundant codes.
 ## Code for Error Handling: ```/src/errors/showErrors.ts```
 ```
 import { Response } from "express"
