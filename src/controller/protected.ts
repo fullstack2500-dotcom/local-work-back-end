@@ -1,6 +1,5 @@
 import { Request, Response } from "express";
-import User from "../model/User";
-import { AppSchema, CompanySchema, JobOverviewSchema, JobSchema, LocationSchema, TagSchema, employerIdSchema, ViewProfile } from "../validator/protected";
+import { ApplicationSchema, CompanySchema, JobOverviewSchema, JobSchema, LocationSchema, TagSchema, employerIdSchema, ViewProfile } from "../validator/protected";
 import Job from "../model/Job";
 import { filterXSS } from "xss";
 import Application from "../model/Application";
@@ -11,6 +10,7 @@ import { instanceErrors, mainError } from "../errors/showErrors";
 import Tag from "../model/Tag";
 import Company from "../model/Company";
 import { success } from "zod";
+import Employer from "../model/Employer";
 
 // Dashboard:
 export const Dashboard = async (req: Request, res: Response) => {
@@ -32,78 +32,35 @@ export const IsUserLogged = async (req: Request, res: Response) => {
 
 
 
-// Workers:
-// Create new Application
-export const createApplication = async (req: Request, res: Response) => {
-  req.body.job = req.body.job
-  req.body.worker = req.user.id
-  req.body.role = req.user.role
+// Create New Application:
+export const newApplication = async (req: Request, res: Response) => {
+  req.body.worker = 
+    req.user.id
 
-  const validatedApp = AppSchema.safeParse(req.body)
-  if (validatedApp.error) {
-    const errors = validatedApp.error.issues
-    return res.status(400).json({
-      success: false,
-          code: errors[0].code,
-          message: errors[0].message
-    })
-  }
+  const validatedData = ApplicationSchema.safeParse(req.body)
+  if (validatedData.error) { const errors = validatedData.error.issues; return res.status(400).json({ success: false, message: errors[0].message }) }
 
-  // Get the inputs required:
-  const { job, role, worker, subject, message, contact } = validatedApp.data
-
-  // Sanitize XSS Subject:
-  const sanitizedSubject = filterXSS(subject, { 
-    whiteList: {},
-        stripIgnoreTag: true,
-            stripIgnoreTagBody: true
-  })
-
-  // Sanitize XSS Message:
-  const sanitizedMessage = filterXSS(message, {
-    whiteList: {},
-        stripIgnoreTag: true,
-            stripIgnoreTagBody: true
-  })
-
-  // Sanitize XSS Contact:
-  const sanitizedContact = filterXSS(contact, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
-
+  const { job, worker } = validatedData.data
 
   try {
-    const jobExists = await Job.findOne({ _id: job })
-    if (!jobExists) return res.status(400).json({ success: false, message: "Job doesn't exist" })
+    const newApplication = new Application({ job, worker })
+    await newApplication.save()
 
-    const workerExists = await User.findOne({ _id: worker, role: role })
-    if (!workerExists) return res.status(400).json({ success: false, message: "Worker doesn't exist"})
-
-    const payload = { job, worker, subject: sanitizedSubject, message: sanitizedMessage, contact: sanitizedContact }
-    const newApp = new Application(payload)
-
-    const application = await newApp.save()
-    
     return res.status(200).json({
       success: true,
-      message: "Your application has been received! Please check your messages for updates.",
-      application
+      application: newApplication
     })
-
   } catch (error: unknown) {
-    console.error(error)
-
-    if (error instanceof Error) {
-      return res.status(400).json({
-        success: false,
-        message: error.message
-      })
-    }
-
-    return res.status(500).json({
-      success: false,
-      message: "Internal Server Error"
-    })
+    instanceErrors(
+      error,
+      res
+    )
   }
 }
+
+
+
+
 
 
 
@@ -125,12 +82,13 @@ export const createJob = async (req: Request, res: Response) => {
 
   const { id, role } = validatedUser.data
 
-  const details = await User.findOne({ _id: id, role })
+  const details = await Employer.findOne({ _id: id, role })
   if (!details) return res.status(404).json({ success: false, message: "Employer not found" })
-  console.log(details.email, details.phoneNumber)
+  console.log(details.email, details.phone)
 
   req.body.email = details.email
-  req.body.phone = details.phoneNumber
+  req.body.phone = details.phone
+  req.body.company = details.company
 
   const validatedJobData = JobSchema.safeParse(req.body)
   if (validatedJobData.error) {
@@ -182,35 +140,35 @@ export const createJob = async (req: Request, res: Response) => {
 
 
 // View Job Applications:
-export const viewJobApplications = async (req: Request, res: Response) => {
-  const validatedUserId = UserSchema.safeParse({ user: req.user.id })
-  if (validatedUserId.error) {
-    const errors = validatedUserId.error.issues
-        return res.status(400).json({ success: false, message: errors[0].message })
-  }
+// export const viewJobApplications = async (req: Request, res: Response) => {
+//   const validatedUserId = UserSchema.safeParse({ user: req.user.id })
+//   if (validatedUserId.error) {
+//     const errors = validatedUserId.error.issues
+//         return res.status(400).json({ success: false, message: errors[0].message })
+//   }
 
-  const { user } = validatedUserId.data
+//   const { user } = validatedUserId.data
 
-  try {
-    const applications = await Application.find({ worker: user }).sort({ createdAt: -1 })
+//   try {
+//     const applications = await Application.find({ worker: user }).sort({ createdAt: -1 })
 
-    if (!applications) {
-      return res.status(200).json({ success: true, message: "You currently don't have any applications" })
-    }
+//     if (!applications) {
+//       return res.status(200).json({ success: true, message: "You currently don't have any applications" })
+//     }
 
-    return res.status(200).json({
-      success: true,
-      applications
-    })
-  } catch (error) {
-    console.error(error)
+//     return res.status(200).json({
+//       success: true,
+//       applications
+//     })
+//   } catch (error) {
+//     console.error(error)
 
-    return res.status(500).json({
-      success: false,
-      message: "Internal Server Error"
-    })
-  }
-}
+//     return res.status(500).json({
+//       success: false,
+//       message: "Internal Server Error"
+//     })
+//   }
+// }
 
 
 
@@ -417,29 +375,29 @@ export const AddTag = async (req: Request, res: Response) => {
 
 
 
-export const viewProfile = async (req: Request, res: Response) => {
-  const validatedUser = ViewProfile.safeParse({ id: req.user.id, role: req.user.role })
-  if (validatedUser.error) {
-    return res.status(400).json({ success: false, message: "Failed to validated User ID"} );
-  }
+// export const viewProfile = async (req: Request, res: Response) => {
+//   const validatedUser = ViewProfile.safeParse({ id: req.user.id, role: req.user.role })
+//   if (validatedUser.error) {
+//     return res.status(400).json({ success: false, message: "Failed to validated User ID"} );
+//   }
 
-  const { id, role } = validatedUser.data
-  try {
-    const viewProfile = await User.findOne({ _id: id, role }).select("-password").exec()
-    if (!viewProfile) return res.status(404).json({ success: false, message: "User not found" });
+//   const { id, role } = validatedUser.data
+//   try {
+//     const viewProfile = await User.findOne({ _id: id, role }).select("-password").exec()
+//     if (!viewProfile) return res.status(404).json({ success: false, message: "User not found" });
 
-    return res.status(200).json({
-      success: true,
-      user: viewProfile
-    })
-  } catch (error) {
+//     return res.status(200).json({
+//       success: true,
+//       user: viewProfile
+//     })
+//   } catch (error) {
 
-    mainError(
-      error,
-      res
-    )
-  }
-}
+//     mainError(
+//       error,
+//       res
+//     )
+//   }
+// }
 
 
 

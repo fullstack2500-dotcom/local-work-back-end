@@ -14,6 +14,7 @@ export interface IJob extends Document {
   benefits: string[],
   schedule: string,
   startDate: string,
+  status: string,
   positions: Number,
   applyBefore: string,
   contactEmail: string,
@@ -22,14 +23,14 @@ export interface IJob extends Document {
 
 const JobSchema: Schema = new Schema({
   title: { type: String, required: [true, "Title is required"], unique: [true, "Title must be unique"] },
-  company: { type: Schema.Types.ObjectId, ref: 'Companie', required: [true, "Company is required"] },
+  company: { type: String, required: [true, "Company is required"] },
   posted: { type: Schema.Types.ObjectId, ref: 'User', required: [true, "Employer ID is required"] },
-  location: { type: Schema.Types.ObjectId, ref: 'Location', required: [true, "Location is required"] },
+  location: { type: String, required: [true, "Location is required"] },
   type: { type: String, enum: ["Part-Time", "Full-Time"], default: "Full-Time" },
   salary: { type: String, required: [true, "Salary is required"] },
   description: { type: String, required: [true, "Description is required"] },
   tags: [
-    { type: Schema.Types.ObjectId, ref: "Tag" }
+    { type: String }
   ],
   requirements: [
     { type: String }
@@ -39,6 +40,7 @@ const JobSchema: Schema = new Schema({
   ],
   schedule: { type: String },
   startDate: { type: String, default: "Immediate" },
+  status: { type: String, default: "pending" },
   positions: { type: Number, required: [true, "Number of Positions required"] },
   applyBefore: { type: String },
   email: { type: String },

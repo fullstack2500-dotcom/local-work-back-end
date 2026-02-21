@@ -52,22 +52,9 @@ export const JobOverviewSchema = z.object({
 
 
 // Application Schema:
-export const AppSchema = z.object({
-  job: z.string("Job must be a string"),
-  worker: z.string("Worker must be a string"),
-  role: z.enum(["worker"], "Workers Only!"),
-  subject: z
-            .string("Subject must be a string")
-            .min(3, "Subject must have at least 3 characters")
-            .max(50, "Subject shouldn't exceed 50 characters"),
-  message: z
-            .string("Message must be a string")
-            .min(20, "Message must have at least 20 characters")
-            .max(500, "Message shouldn't exceed 500 characters"),
-  contact: z
-            .string("Contact Details must be a string")
-            .min(11, "Contact Details must have at least 11 characters")
-            .max(50, "Contact Details shouldn't exceed 50 characters")
+export const ApplicationSchema = z.object({
+  job: z.string("Job must be the ObjectId String"),
+  worker: z.string("User ID must be an ObjectId")
 })
 
 

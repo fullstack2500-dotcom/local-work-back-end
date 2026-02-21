@@ -17,13 +17,22 @@ const app = express()
 app.use(cookieParser())
 
 // Security middlewares:
-app.use(helmet())
+
+/*
+Source - https://stackoverflow.com/a/73001269
+Posted by Alfredo Bangun, modified by community. See post 'Timeline' for change history
+Retrieved 2026-02-16, License - CC BY-SA 4.0
+*/
+
+app.use(helmet.crossOriginResourcePolicy({ policy: "cross-origin" }));
+
 app.use(cors({
   origin: 'http://localhost:8080',
   credentials: true
 }))
 
 app.use(express.json())
+app.use("/public", express.static('public'))
 
 
 // Rate Limit:
