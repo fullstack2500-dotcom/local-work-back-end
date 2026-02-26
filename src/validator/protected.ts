@@ -30,8 +30,8 @@ export const JobSchema = z.object({
   ),
   schedule: z.string("Schedule must be a string"),
   startDate: z.string("Please enter a date").optional(),
-  positions: z.int("Positions must be an integer"),
-  applyBefore: z.string("Apply Before must be a string"),
+  positions: z.int("Positions must be an integer").optional(),
+  applyBefore: z.string("Apply Before must be a string").optional(),
   email: z.string("Contact Email must be a string").email("Contact Email must be a valid email"),
   phone: z.string("Contact Phone must be a string").regex(/^(\+639)\d{9}$/, "Please enter a valid phone number, ex. +639...")
 })

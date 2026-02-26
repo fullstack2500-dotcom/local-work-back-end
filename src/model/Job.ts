@@ -41,7 +41,7 @@ const JobSchema: Schema = new Schema({
   schedule: { type: String },
   startDate: { type: String, default: "Immediate" },
   status: { type: String, default: "pending" },
-  positions: { type: Number, required: [true, "Number of Positions required"] },
+  positions: { type: Number },
   applyBefore: { type: String },
   email: { type: String },
   phone: { type: String }

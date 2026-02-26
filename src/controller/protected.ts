@@ -102,7 +102,6 @@ export const createJob = async (req: Request, res: Response) => {
   payload.title = filterXSS(payload.title, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
   payload.description = filterXSS(payload.description, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
   payload.schedule = filterXSS(payload.schedule, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
-  payload.applyBefore = filterXSS(payload.applyBefore, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
   payload.salary = filterXSS(payload.salary, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
   // Will log `**Hello,world!**`
   // console.log(`text: ${html.replace(/\\s/g, '')}`);
