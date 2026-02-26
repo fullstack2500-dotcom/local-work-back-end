@@ -120,7 +120,7 @@ export const EmployerSchema = z.object({
       ),
   phone: z.string("Phone Number must be a string").regex(/^(\+639)\d{9}$/, "Please enter a valid phone number, ex. +639..."),
   industry: z.string("Industry must be a string").regex(/^[A-Za-z0-9 ]*$/, "Company should only include letters, digits, and spaces"),
-  permit: z.string("Permit must be the URL string")
+  permit: z.string("Permit must be the URL string").optional()
 })
 
 

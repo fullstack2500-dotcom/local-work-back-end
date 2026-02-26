@@ -1,4 +1,4 @@
-import { PendingJobs, TotalJobs, TotalWorkers, PendingWorkers, VerifiedWorkers, DeclinedWorkers, NewSkillController, Applications, ViewJobs, UpdateJobStatus, WorkersEmployers } from "../controller/admin";
+import { TotalWorkers, PendingWorkers, VerifiedWorkers, DeclinedWorkers, NewSkillController, Applications, ViewJobs, UpdateJobStatus, WorkersEmployers, Dashboard } from "../controller/admin";
 import { Router } from "express";
 import authorized from "../middleware/authorized";
 import { admin } from "../middleware/roles";
@@ -6,8 +6,7 @@ import { admin } from "../middleware/roles";
 const router = Router()
 
 // GET Routes:
-router.get("/totalJobs", authorized, admin, TotalJobs)
-router.get("/pendingJobs", authorized, admin, PendingJobs)
+router.get("/dashboard", authorized, admin, Dashboard)
 router.get("/workers", authorized, admin, TotalWorkers)
 router.get("/workers/pending", authorized, admin, PendingWorkers)
 router.get("/workers/accepted", authorized, admin, VerifiedWorkers)

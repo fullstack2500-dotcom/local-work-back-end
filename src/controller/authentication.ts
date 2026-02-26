@@ -22,7 +22,7 @@ export const displayFile = async (req: Request, res: Response) => {
 // Register Admin:
 export const AdminRegister = async (req: any, res: Response) => {
   const validatedData = AdminSchema.safeParse(req.body)
-  if (validatedData.error) { const errors = validatedData.error.issues; return res.status(400).json({ success: false, message: errors[0].message }) }
+  if (validatedData.error) { const errors = validatedData.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message }) }
 
   const { name, email, password, role } = validatedData.data;
 
@@ -54,7 +54,7 @@ export const AdminRegister = async (req: any, res: Response) => {
 // Login Admin:
 export const AdminLogin = async (req: Request, res: Response) => {
   const validatedData = AdminLoginSchema.safeParse(req.body)
-  if (validatedData.error) { const errors = validatedData.error.issues; return res.status(400).json({ success: false, message: errors[0].message }) }
+  if (validatedData.error) { const errors = validatedData.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message }) }
 
   const { email, password } = validatedData.data;
 
@@ -149,7 +149,7 @@ export const EmployerRegister = async (req: Request, res: Response) => {
     const newEmployer = new Employer({ company, email, password: hash, phone, industry, permit })
     await newEmployer.save()
 
-    const token = jwt.sign({ id: newEmployer._id, role: newEmployer.role }, process.env.JWT_SECRET as string, { expiresIn: '1h' })
+    const token = jwt.sign({ id: newEmployer._id, role: newEmployer.role, company: newEmployer.company }, process.env.JWT_SECRET as string, { expiresIn: '1h' })
     res.cookie('token', token, { expires: new Date(Date.now() + 60 * 60 * 1000), httpOnly: true, sameSite: 'strict' })
 
     return res.status(200).json({

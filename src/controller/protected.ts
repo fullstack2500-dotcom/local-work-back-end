@@ -88,7 +88,7 @@ export const createJob = async (req: Request, res: Response) => {
 
   req.body.email = details.email
   req.body.phone = details.phone
-  req.body.company = details.company
+  req.body.company = req.user.company
 
   const validatedJobData = JobSchema.safeParse(req.body)
   if (validatedJobData.error) {

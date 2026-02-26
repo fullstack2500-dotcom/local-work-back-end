@@ -15,9 +15,69 @@ import {
 import { instanceErrors, mainError } from "../errors/showErrors";
 import Employer from "../model/Employer";
 import Job from "../model/Job";
-import { array, success } from "zod";
 import Skill from "../model/Skill";
 import Application from "../model/Application";
+
+
+
+
+// Dashboard:
+export const Dashboard = async (req: Request, res: Response) => {
+  const validatedPending = PendingSchema.safeParse({ status: "pending" })
+  const validatedAccepted = AcceptedSchema.safeParse({ status: "accepted" })
+  const validatedDeclined = DeclinedSchema.safeParse({ status: "declined" })
+
+  const validatedVerifiedWorkers = VerifiedWorkersSchema.safeParse({ status: "verified "})
+  const validatedPendingWorkers = PendingVerificationWorkersSchema.safeParse({ status: "pending" })
+  const validatedDeclinedWorkers = DeclinedWorkersSchema.safeParse({ status: "declined" })
+
+  const validatedApplicationStatus = AppStatusSchema.safeParse({
+    status_PR: "Pending Review",
+    status_IS: "Interview Scheduled",
+    status_AC: "Accepted",
+    status_NS: "Not Selected"
+  })
+
+  try {
+    const totalJobs = await Job.find()
+    const pendingJobs = await Job.find({ status: validatedPending.data?.status })
+    const acceptedJobs = await Job.find({ status: validatedAccepted.data?.status })
+    const declinedJobs = await Job.find({ status: validatedDeclined.data?.status })
+
+    const totalWorkers = await Worker.find()
+    const verifiedWorkers = await Worker.find({ status: validatedVerifiedWorkers.data?.status })
+    const pendingWorkers = await Worker.find({ status: validatedPendingWorkers.data?.status })
+    const declinedWorkers = await Worker.find({ status: validatedDeclinedWorkers.data?.status })
+
+    const totalApplications = await Application.find()
+    const pendingApplication = await Application.find({ status: validatedApplicationStatus.data?.status_PR })
+    const interviewScheduledApplication = await Application.find({ status: validatedApplicationStatus.data?.status_IS })
+    const acceptedApplication = await Application.find({ status: validatedApplicationStatus.data?.status_AC })
+    const notSelectedApplication = await Application.find({ status: validatedApplicationStatus.data?.status_NS })
+
+    return res.status(200).json({
+      success: true,
+      jobs: totalJobs.length,
+      pending: pendingJobs.length,
+      accepted: acceptedJobs.length,
+      declined: declinedJobs.length,
+      workers: totalWorkers.length,
+      verified: verifiedWorkers.length,
+      pendingWorkers: pendingWorkers.length,
+      declinedWorkers: declinedWorkers.length,
+      applications: totalApplications.length,
+      pendingApplication: pendingApplication.length,
+      interviewScheduledApplication: interviewScheduledApplication.length,
+      acceptedApplication: acceptedApplication.length,
+      notSelectedApplication: notSelectedApplication.length
+    })
+  } catch (error) {
+    mainError(
+      error,
+      res
+    )
+  }
+}
 
 
 // Workers:
@@ -40,7 +100,7 @@ export const TotalWorkers = async (req: Request, res: Response) => {
 // Verified Workers:
 export const VerifiedWorkers = async (req: Request, res: Response) => {
   const validatedRoleAndStatus = VerifiedWorkersSchema.safeParse({ status: "verified" })
-  if (validatedRoleAndStatus.error) { const errors = validatedRoleAndStatus.error.issues; return res.status(400).json({ success: false, message: errors[0].message }) }
+  if (validatedRoleAndStatus.error) { const errors = validatedRoleAndStatus.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message }) }
 
   const { status } = validatedRoleAndStatus.data
 
@@ -62,7 +122,7 @@ export const VerifiedWorkers = async (req: Request, res: Response) => {
 // Pending Workers:
 export const PendingWorkers = async (req: Request, res: Response) => {
   const validatedRoleAndStatus = PendingVerificationWorkersSchema.safeParse({ status: "pending" })
-  if (validatedRoleAndStatus.error) { const errors = validatedRoleAndStatus.error.issues; return res.status(400).json({ success: false, message: errors[0].message }) }
+  if (validatedRoleAndStatus.error) { const errors = validatedRoleAndStatus.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message }) }
 
   const { status } = validatedRoleAndStatus.data
 
@@ -85,7 +145,7 @@ export const PendingWorkers = async (req: Request, res: Response) => {
 // Declined Workers:
 export const DeclinedWorkers = async (req: Request, res: Response) => {
   const validatedRoleAndStatus = DeclinedWorkersSchema.safeParse({ status: "declined" })
-  if (validatedRoleAndStatus.error) { const errors = validatedRoleAndStatus.error.issues; return res.status(400).json({ success: false, message: errors[0].message }) }
+  if (validatedRoleAndStatus.error) { const errors = validatedRoleAndStatus.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message }) }
 
   const { status } = validatedRoleAndStatus.data
 
@@ -123,93 +183,10 @@ export const ReportedAccounts = async (req: Request, res: Response) => {
 
 
 
-
-// Total Jobs Post:
-export const TotalJobs = async (req: Request, res: Response) => {
-  try {
-    const jobs = await Job.find().sort({ createdAt: -1 })
-
-    return res.status(200).json({
-      success: true,
-      jobs: jobs.length
-    })
-  } catch (error) {
-    mainError(error, res)
-  }
-}
-
-
-
-// Pending Jobs:
-export const PendingJobs = async (req: Request, res: Response) => {
-  const validatedData = PendingSchema.safeParse({ status: "pending" })
-  if (validatedData.error) { const errors = validatedData.error.issues; return res.status(400).json({ success: false, message: errors[0].message }) }
-
-  const { status } = validatedData.data
-
-  try {
-    const pendingJobs = await Job.find({ status }).sort({ createdAt: -1 })
-
-    return res.status(200).json({
-      success: true,
-      pending: pendingJobs.length
-    })
-  } catch (error) {
-    mainError(error, res)
-  }
-}
-
-
-
-
-// Accepted Jobs:
-export const Accepted = async (req: Request, res: Response) => {
-  const validatedData = AcceptedSchema.safeParse({ status: "accepted" })
-  if (validatedData.error) { const errors = validatedData.error.issues; return res.status(400).json({ success: false, message: errors[0].message }) }
-
-  const { status } = validatedData.data
-
-  try {
-    const accepted = await Job.find({ status }).sort({ createdAt: -1 })
-
-    return res.status(200).json({
-      success: true,
-      accepted: accepted.length
-    })
-  } catch (error) {
-    mainError(error, res)
-  }
-}
-
-
-
-
-
-// Declined Jobs:
-export const Declined = async (req: Request, res: Response) => {
-  const validatedData = DeclinedSchema.safeParse({ status: "declined" })
-  if (validatedData.error) { const errors = validatedData.error.issues; return res.status(400).json({ success: false, message: errors[0].message }) }
-
-  const { status } = validatedData.data
-
-  try {
-    const declined = await Job.find({ status }).sort({ createdAt: -1 })
-
-    return res.status(200).json({
-      success: true,
-      declined: declined.length
-    })
-  } catch (error) {
-    mainError(error, res)
-  }
-}
-
-
-
 // Add New Skill:
 export const NewSkillController = async (req: Request, res: Response) => {
   const validatedData = NewSkillSchema.safeParse(req.body)
-  if (!validatedData.success) { const errors = validatedData.error.issues; return res.status(400).json({ success: false, message: errors[0].message }) }
+  if (!validatedData.success) { const errors = validatedData.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message }) }
   
   const { title } = validatedData.data
 
@@ -235,7 +212,7 @@ export const NewSkillController = async (req: Request, res: Response) => {
 // Displaying Applications:
 export const Applications = async (req: Request, res: Response) => {
   const validatedStatus = AppStatusSchema.safeParse({ status_PR: "Pending Review", status_IS: "Interview Scheduled", status_AC: "Accepted", status_NS: "Not Selected" })
-  if (validatedStatus.error) { const errors = validatedStatus.error.issues; return res.status(400).json({ success: false, message: errors[0].message }) }
+  if (validatedStatus.error) { const errors = validatedStatus.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message }) }
 
   const { status_PR, status_IS, status_AC, status_NS } = validatedStatus.data
 
@@ -295,7 +272,7 @@ export const UpdateJobStatus = async (req: Request, res: Response) => {
 
   const validatedStatus = UpdateSchema.safeParse({ id: job, status: newStatus })
 
-  if (validatedStatus.error) { const errors = validatedStatus.error.issues; return res.status(400).json({ success: false, message: errors[0].message }) }
+  if (validatedStatus.error) { const errors = validatedStatus.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message }) }
 
   const { id, status } = validatedStatus.data
 

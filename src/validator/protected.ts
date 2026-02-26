@@ -10,7 +10,7 @@ export const JobSchema = z.object({
   company: z.string("Company must be a string"),
   posted: z.string("Posted By must be the string of the user ID"),
   location: z.string("Location must be a string"),
-  type: z.enum(["Part-Time", "Full-Time"], "Type must be Part-Time | Full-Time").optional(),
+  type: z.enum(["Part-Time", "Full-Time", "Contract", "Temporary"], "Type must be Part-Time | Full-Time").optional(),
   salary: z.string("Salary must be a string"),
   description: z
           .string("Description must be a string")

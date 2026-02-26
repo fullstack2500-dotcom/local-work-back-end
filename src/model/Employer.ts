@@ -19,7 +19,7 @@ const EmployerSchema: Schema = new Schema({
   phone: { type: String, required: [true, "Phone is required"] },
   industry: { type: String, required: [true, "Industry is required"] },
   profile: { type: String, default: "default.jpg" },
-  permit: { type: String, required: [true, "Permit is required"] },
+  permit: { type: String },
   status: { type: String, default: "pending" },
   role: { type: String, enum: ["employer"], default: "employer" }
 }, { timestamps: true })

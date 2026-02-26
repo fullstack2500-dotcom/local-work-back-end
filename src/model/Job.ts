@@ -26,7 +26,7 @@ const JobSchema: Schema = new Schema({
   company: { type: String, required: [true, "Company is required"] },
   posted: { type: Schema.Types.ObjectId, ref: 'User', required: [true, "Employer ID is required"] },
   location: { type: String, required: [true, "Location is required"] },
-  type: { type: String, enum: ["Part-Time", "Full-Time"], default: "Full-Time" },
+  type: { type: String, enum: ["Part-Time", "Full-Time", "Contract", "Temporary"], default: "Full-Time" },
   salary: { type: String, required: [true, "Salary is required"] },
   description: { type: String, required: [true, "Description is required"] },
   tags: [
