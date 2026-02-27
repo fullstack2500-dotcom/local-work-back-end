@@ -168,9 +168,64 @@ export const EmployerRegister = async (req: Request, res: Response) => {
 
 
 
+// Login Controller:
+export const EmployerLogin = async (req: Request, res: Response) => {
+  const validatedData = LoginSchema.safeParse(req.body)
+
+  if (validatedData.error) {
+    const errors = validatedData.error.issues
+    return res.status(400).json({
+        success: false,
+            message: errors[0].message
+    })
+  }
+
+  // Validated email and password:
+  const {
+    email,
+    password,
+    role
+  } = validatedData.data
+
+  try {
+    const user = await Employer.findOne({ email })
+    if (!user) return res.status(400).json({ success: false, message: "Incorrect Email / Password" })
+
+    const isMatch = await bcrypt.compare(password, user.password)
+    if (!isMatch) return res.status(400).json({ success: false, message: "Incorrect Email / Password" })
+
+    const verify = await Employer.findOne({ email: user.email, role })
+    if (!verify) return res.status(400).json({ success: false, message: "Incorrect Email / Password" })
+
+    const token = jwt.sign({ id: user._id, role: user.role, company: user.company }, process.env.JWT_SECRET as string, {
+      expiresIn: '1h'
+    })
+
+    res.cookie('token', token, {
+      expires: new Date(Date.now() + 60 * 60 * 1000),
+      httpOnly: true,
+      sameSite: 'strict'
+    })
+    console.log(req.cookies)
+
+    return res.status(200).json({
+      success: true,
+      message: "Login Successful!"
+    })
+  } catch (error) {
+
+    mainError(
+      error, res
+    )
+  }
+}
+
+
+
+
 
 // Login Controller:
-export const Login = async (req: Request, res: Response) => {
+export const WorkerLogin = async (req: Request, res: Response) => {
   const validatedData = LoginSchema.safeParse(req.body)
 
   if (validatedData.error) {

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { WorkerRegister, Login, displayFile, AdminRegister, AdminLogin, EmployerRegister } from "../controller/authentication";
+import { WorkerRegister, displayFile, AdminRegister, AdminLogin, EmployerRegister, EmployerLogin, WorkerLogin } from "../controller/authentication";
 import rateLimit from "express-rate-limit";
 import { uploadResume } from "../file/upload";
 
@@ -211,6 +211,54 @@ router.post(
 
 
 
+// Login Employer:
+router.post(
+  "/employer/login",
+
+  rateLimit({
+    windowMs: 1 * 60 * 1000,
+    max: 10,
+    message: "Too many failed attempts, please try again after 1 minute.",
+    skipSuccessfulRequests: true
+  }),
+
+  rateLimit({
+    windowMs: 3 * 60 * 1000,
+    max: 10 + 4,
+    message: "Too many failed attempts, please try again after 3 minutes.",
+    skipSuccessfulRequests: true
+  }),
+
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10 + 4 + 2,
+    message: "Too many failed attempts, please try again after 15 minutes.",
+    skipSuccessfulRequests: true
+  }),
+
+  rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 10 + 4 + 2 + 1,
+    message: "Too many failed attempts, please try again after 1 hr.",
+    skipSuccessfulRequests: true
+  }),
+  
+  rateLimit({
+    windowMs: 24 * 60 * 60 * 1000,
+    max: 10 + 4 + 2 + 1 + 1,
+    message: "Too many failed attempts, please try again after 24 hrs.",
+    skipSuccessfulRequests: true
+  }),
+
+  rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 20,
+    message: "Too many login attempts, please try again after 1 hr.",
+    skipFailedRequests: true
+  }),
+
+  EmployerLogin
+)
 
 
 
@@ -260,7 +308,7 @@ router.post(
     skipFailedRequests: true
   }),
 
-  Login
+  WorkerLogin
 )
 
 export default router
