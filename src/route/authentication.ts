@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { WorkerRegister, displayFile, AdminRegister, AdminLogin, EmployerRegister, EmployerLogin, WorkerLogin } from "../controller/authentication";
+import { WorkerRegister, displayFile, AdminRegister, AdminLogin, EmployerRegister, EmployerLogin, WorkerLogin, FindJobs } from "../controller/authentication";
 import rateLimit from "express-rate-limit";
 import { uploadResume } from "../file/upload";
 
@@ -8,6 +8,7 @@ const router = Router()
 // // Display the total workers:
 // router.get("/local", TotalWorkers)
 router.get("/display", displayFile)
+router.get("/jobs", FindJobs)
 
 
 

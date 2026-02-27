@@ -24,7 +24,7 @@ export interface IJob extends Document {
 const JobSchema: Schema = new Schema({
   title: { type: String, required: [true, "Title is required"], unique: [true, "Title must be unique"] },
   company: { type: String, required: [true, "Company is required"] },
-  posted: { type: Schema.Types.ObjectId, ref: 'User', required: [true, "Employer ID is required"] },
+  posted: { type: Schema.Types.ObjectId, ref: 'Employer', required: [true, "Employer ID is required"] },
   location: { type: String, required: [true, "Location is required"] },
   type: { type: String, enum: ["Part-Time", "Full-Time", "Contract", "Temporary"], default: "Full-Time" },
   salary: { type: String, required: [true, "Salary is required"] },

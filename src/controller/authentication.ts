@@ -7,6 +7,7 @@ import { instanceErrors, mainError } from "../errors/showErrors";
 import Admin from "../model/Admin";
 import { resume } from "../file/upload";
 import Employer from "../model/Employer";
+import Job from "../model/Job";
 
 
 
@@ -283,31 +284,20 @@ export const WorkerLogin = async (req: Request, res: Response) => {
 
 
 
-// // Total Workers:
-// export const TotalWorkers = async (req: Request, res: Response) => {
-//   const validatedRole = TotalWorkerSchemaMain.safeParse({ role: "worker" })
+// For the FindJobs:
+export const FindJobs = async (req: Request, res: Response) => {
+  try {
+    const jobs = await Job.find().sort({ createdAt: -1 })
+    if (!jobs.length) return res.status(200).json({ success: true, message: "No jobs available" })
 
-//   if (validatedRole.error) {
-//     const errors = validatedRole.error.issues
-//     return res.status(400).json({
-
-//       success: false,
-//       message: errors[0].message
-//     })
-//   }
-
-//   const { role } = validatedRole.data
-
-//   try {
-//     const workers = await Worker.find({ role })
-//     const localWorkers = workers.length
-
-//     if (localWorkers > 500) { return res.status(200).json({ success: true, localWorkers: "500+" }) }
-//     else { return res.status(200).json({ success: true, localWorkers }) }
-
-//   } catch (error) {
-//     mainError(
-//       error, res
-//     )
-//   }
-// }
+    return res.status(200).json({
+      success: true,
+      jobs
+    })
+  } catch (error) {
+    mainError(
+      error, 
+      res
+    )
+  }
+}
