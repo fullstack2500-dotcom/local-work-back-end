@@ -84,8 +84,11 @@ export const WorkerRegisterSchema = z.object({
       .string("Phone Number must be a string")
       .regex(/^(\+639)\d{9}$/, "Please enter a valid phone number, ex. +639..."),
 
-  skill: z.string("Skill must be a string"),
-
+  skills: z.array(
+    z.string("Skill must be a string").regex(/^[A-Za-z ]*$/, "Skill must only contain letters and spaces"),
+    "Skills must be an array"
+  ),
+  skillCategory: z.string("Skill Category must be a string").regex(/^[A-Za-z]*$/, "Skill must only contain letters"),
   
 
   // Source - https://stackoverflow.com/q
