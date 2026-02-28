@@ -88,7 +88,7 @@ export const WorkerRegisterSchema = z.object({
     z.string("Skill must be a string").regex(/^[A-Za-z ]*$/, "Skill must only contain letters and spaces"),
     "Skills must be an array"
   ),
-  skillCategory: z.string("Skill Category must be a string").regex(/^[A-Za-z]*$/, "Skill must only contain letters"),
+  skillCategory: z.string("Skill Category must be a string"),
   
 
   // Source - https://stackoverflow.com/q
