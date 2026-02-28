@@ -111,19 +111,9 @@ export const WorkerRegister = async (req: Request, res: Response) => {
 
   const { name, email, phoneNumber, password, role, skills, skillCategory, photo, resume } = validatedData.data;
 
-  let emptySkills = []
-
-  emptySkills.push(skillCategory)
-
-  for (let skill = 0; skill < skills.length; skill++) {
-    emptySkills.push(skills[skill])
-  }
-
-
-
   try {
     const hash = await bcrypt.hash(password, 12);
-    const newUser = new Worker({ name, email, phoneNumber, password: hash, role, skills: emptySkills, skillCategory, photo, resume })
+    const newUser = new Worker({ name, email, phoneNumber, password: hash, role, skills, skillCategory, photo, resume })
     
     await newUser.save()
 
