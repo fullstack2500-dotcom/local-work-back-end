@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { WorkerRegister, displayFile, AdminRegister, AdminLogin, EmployerRegister, EmployerLogin, WorkerLogin, FindJobs } from "../controller/authentication";
+import { WorkerRegister, displayFile, AdminRegister, AdminLogin, EmployerRegister, EmployerLogin, WorkerLogin, FindJobs, ViewSkills } from "../controller/authentication";
 import rateLimit from "express-rate-limit";
 import { uploadResume } from "../file/upload";
 
@@ -311,5 +311,7 @@ router.post(
 
   WorkerLogin
 )
+
+router.get("/ViewSkills", ViewSkills)
 
 export default router

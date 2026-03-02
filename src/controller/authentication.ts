@@ -8,6 +8,7 @@ import Admin from "../model/Admin";
 import { resume } from "../file/upload";
 import Employer from "../model/Employer";
 import Job from "../model/Job";
+import Skill from "../model/Skill";
 
 
 
@@ -113,13 +114,16 @@ export const WorkerRegister = async (req: Request, res: Response) => {
 
   try {
     const hash = await bcrypt.hash(password, 12);
-    const newUser = new Worker({ name, email, phoneNumber, password: hash, role, skills, skillCategory, photo, resume })
+    const newWorker = new Worker({ name, email, phoneNumber, password: hash, role, skills, skillCategory, photo, resume })
     
-    await newUser.save()
+    await newWorker.save()
+
+    const token = jwt.sign({ id: newWorker._id, role: newWorker.role }, process.env.JWT_SECRET as string, { expiresIn: '1h' })
+    res.cookie('token', token, { expires: new Date(Date.now() + 60 * 60 * 1000), httpOnly: true, sameSite: 'strict' })
 
     return res.status(201).json({
       success: true,
-      message: "User Successfully Registered!"
+      message: "Worker Successfully Registered!"
     })
 
   } catch (error: unknown) {
@@ -189,7 +193,7 @@ export const EmployerLogin = async (req: Request, res: Response) => {
   } = validatedData.data
 
   try {
-    const user = await Employer.findOne({ email })
+    const user = await Employer.findOne({ email }).select("+password")
     if (!user) return res.status(400).json({ success: false, message: "Incorrect Email / Password" })
 
     const isMatch = await bcrypt.compare(password, user.password)
@@ -295,6 +299,31 @@ export const FindJobs = async (req: Request, res: Response) => {
       jobs
     })
   } catch (error) {
+    mainError(
+      error, 
+      res
+    )
+  }
+}
+
+
+
+
+
+
+
+
+// View Skills:
+export const ViewSkills = async (req: Request, res: Response) => {
+  try {
+    const skills = await Skill.find()
+    if (!skills.length) return res.status(200).json({ success: true, message: "No Skills Yet" })
+
+    return res.status(200).json({
+      success: true,
+      skills
+    })
+  } catch (error: unknown) {
     mainError(
       error, 
       res
