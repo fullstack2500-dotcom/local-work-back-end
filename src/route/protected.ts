@@ -18,7 +18,7 @@ router.get("/viewPostedJobs", authorized, employers, viewPostedJobs)
 router.get("/viewJobOverview", authorized, employers, viewJobOverview)
 
 // // POST Requests [Workers]:
-router.post("/application", authorized, worker, newApplication)
+router.post("/createApplication", authorized, worker, newApplication)
 
 // // POST Requests [Employers]:
 router.post("/createJob", authorized, employers, createJob)
