@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { ApplicationSchema, CompanySchema, JobOverviewSchema, JobSchema, LocationSchema, TagSchema, employerIdSchema, ViewProfile } from "../validator/protected";
+import { ApplicationSchema, CompanySchema, JobOverviewSchema, JobSchema, LocationSchema, TagSchema, employerIdSchema, ViewProfile, WorkerIDJob, JobIDJob } from "../validator/protected";
 import Job from "../model/Job";
 import { filterXSS } from "xss";
 import Application from "../model/Application";
@@ -174,13 +174,39 @@ export const createJob = async (req: Request, res: Response) => {
 
 // View Jobs:
 export const viewJobs = async (req: Request, res: Response) => {
+  const validatedWorker = WorkerIDJob.safeParse({ worker: req.user.id })
+  if (!validatedWorker.success) { const errors = validatedWorker.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message })}
+  
+  const { worker } = validatedWorker.data
+  let jobArray = []
+
   try {
-    const jobs = await Job.find().populate('company').sort({ createdAt: -1 })
+    const jobs = await Job.find().sort({ createdAt: -1 })
     if (jobs.length < 1) return res.status(200).json({ success: true, message: "No jobs available" })
+
+    for (let jobIndex = 0; jobIndex < jobs.length; jobIndex++) {
+      const validatedJob = JobIDJob.safeParse({ job: String(jobs[jobIndex]._id) })
+      if (!validatedJob.success) { const errors = validatedJob.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message })}
+
+      const { job } = validatedJob.data
+
+      const isApplied = await Application.findOne({ worker, job })
+      if (!isApplied) {
+        jobArray.push({
+          info: jobs[jobIndex],
+          IsApplied: false
+        })
+      } else {
+        jobArray.push({
+          info: jobs[jobIndex],
+          IsApplied: true
+        })
+      }
+    }
 
     return res.status(200).json({
       success: true,
-      jobs
+      jobs: jobArray
     })
   } catch (error) {
     

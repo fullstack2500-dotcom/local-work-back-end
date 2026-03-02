@@ -85,6 +85,16 @@ export const ViewProfile = z.object({
 })
 
 
+// Worker ID View Job:
+export const WorkerIDJob = z.object({
+  worker: z.string("Worker must be a string")
+})
+
+// Job ID View Job:
+export const JobIDJob = z.object({
+  job: z.string("Job must be a string")
+})
+
 // Add Employer ID:
 export const employerIdSchema = z.object({
   id: z.string("Employer ID must be a string"),
