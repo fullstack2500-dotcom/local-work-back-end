@@ -54,7 +54,7 @@ export const JobOverviewSchema = z.object({
 // Application Schema:
 export const ApplicationSchema = z.object({
   job: z.string("Job must be the ObjectId String"),
-  worker: z.string("User ID must be an ObjectId")
+  worker: z.string("Worker ID must be an ObjectId")
 })
 
 

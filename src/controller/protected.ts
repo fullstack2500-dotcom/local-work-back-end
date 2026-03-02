@@ -175,7 +175,7 @@ export const createJob = async (req: Request, res: Response) => {
 // View Jobs:
 export const viewJobs = async (req: Request, res: Response) => {
   try {
-    const jobs = await Job.find().populate('company').populate('location').sort({ createdAt: -1 })
+    const jobs = await Job.find().populate('company').sort({ createdAt: -1 })
     if (jobs.length < 1) return res.status(200).json({ success: true, message: "No jobs available" })
 
     return res.status(200).json({
