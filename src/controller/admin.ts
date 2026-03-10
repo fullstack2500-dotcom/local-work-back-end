@@ -10,14 +10,19 @@ import {
   DeclinedWorkersSchema,
   NewSkillSchema,
   AppStatusSchema,
-  UpdateSchema
+  UpdateSchema,
+  AddNewCompanySchema,
+  AddNewIndustryValidation
 } from "../validator/admin";
 import { instanceErrors, mainError } from "../errors/showErrors";
 import Employer from "../model/Employer";
 import Job from "../model/Job";
 import Skill from "../model/Skill";
 import Application from "../model/Application";
-
+import { SortSchema } from "../validator/protected";
+import Company from "../model/Company";
+import { filterXSS } from "xss";
+import Industry from "../model/Industry";
 
 
 
@@ -244,10 +249,10 @@ export const Applications = async (req: Request, res: Response) => {
 
 
 // Display Exported Jobs:
-export const ViewJobs = async (req: Request, res: Response) => {
+export const ViewJobsNew = async (req: Request, res: Response) => {
   try {
     const jobs = await Job.find().sort({ createdAt: -1 })
-    if (jobs.length === 0) return res.status(200).json({ success: true, message: "No jobs available" })
+    if (jobs.length === 0) return res.status(200).json({ success: true, jobs, message: "No jobs available" })
 
     return res.status(200).json({
       success: true,
@@ -260,6 +265,29 @@ export const ViewJobs = async (req: Request, res: Response) => {
     )
   }
 }
+
+
+
+
+
+// Display Exported Jobs:
+export const ViewJobsOld = async (req: Request, res: Response) => {
+  try {
+    const jobs = await Job.find().sort({ createdAt: 1 })
+    if (jobs.length === 0) return res.status(200).json({ success: true, jobs, message: "No jobs available" })
+
+    return res.status(200).json({
+      success: true,
+      jobs
+    })
+  } catch (error) {
+    mainError(
+      error,
+      res
+    )
+  }
+}
+
 
 
 
@@ -314,6 +342,63 @@ export const WorkersEmployers = async (req: Request, res: Response) => {
     })
   } catch (error) {
     mainError(
+      error,
+      res
+    )
+  }
+}
+
+
+
+
+// Add A New Company:
+export const AddANewCompany = async (req: Request, res: Response) => {
+  const validatedData = AddNewCompanySchema.safeParse(req.body)
+  if (!validatedData.success) { const errors = validatedData.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message })}
+
+  const { title, industry, location, description, noOfEmployees, openPositions, website, totalApplications, companyOwner } = validatedData.data
+
+  const sanitizedTitle = filterXSS(title, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
+  const sanitizedDescription = filterXSS(description, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
+
+  try {
+    const NewCompany = new Company({ title: sanitizedTitle, industry, location, description: sanitizedDescription, noOfEmployees, openPositions, website, totalApplications, companyOwner })
+    await NewCompany.save()
+
+    return res.status(201).json({
+      success: true,
+      message: "Added a New Company"
+    })
+  } catch (error: unknown) {
+    instanceErrors(
+      error,
+      res
+    )
+  }
+}
+
+
+
+
+// Add New Industry:
+export const AddNewIndustry = async (req: Request, res: Response) => {
+  const validatedIndustry = AddNewIndustryValidation.safeParse(req.body)
+  if (!validatedIndustry.success) { const errors = validatedIndustry.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message })}
+
+  const { title } = validatedIndustry.data
+
+  const sanitizedTitle = filterXSS(title, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
+
+  try {
+    const NewIndustry = new Industry({ title: sanitizedTitle })
+    await NewIndustry.save()
+
+    return res.status(201).json({
+      success: true,
+      message: "New Industry Added!"
+    })
+  } catch (error) {
+    instanceErrors(
       error,
       res
     )

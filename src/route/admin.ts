@@ -1,4 +1,4 @@
-import { TotalWorkers, PendingWorkers, VerifiedWorkers, DeclinedWorkers, NewSkillController, Applications, ViewJobs, UpdateJobStatus, WorkersEmployers, Dashboard } from "../controller/admin";
+import { TotalWorkers, PendingWorkers, VerifiedWorkers, DeclinedWorkers, NewSkillController, Applications, UpdateJobStatus, WorkersEmployers, Dashboard, ViewJobsNew, ViewJobsOld, AddANewCompany, AddNewIndustry } from "../controller/admin";
 import { Router } from "express";
 import authorized from "../middleware/authorized";
 import { admin } from "../middleware/roles";
@@ -12,11 +12,13 @@ router.get("/workers/pending", authorized, admin, PendingWorkers)
 router.get("/workers/accepted", authorized, admin, VerifiedWorkers)
 router.get("/workers/declined", authorized, admin, DeclinedWorkers)
 router.get("/applications", authorized, admin, Applications)
-router.get("/jobs", authorized, admin, ViewJobs)
+router.get("/jobs", authorized, admin, ViewJobsNew)
 router.get("/worker/employer", authorized, admin, WorkersEmployers)
 
 // POST Routes:
 router.post("/skill", authorized, admin, NewSkillController)
+router.post("/company", authorized, admin, AddANewCompany)
+router.post("/industry", authorized, admin, AddNewIndustry)
 
 // PATCH Routes:
 router.put("/updateJob/:job", authorized, admin, UpdateJobStatus)

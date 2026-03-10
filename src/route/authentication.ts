@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { WorkerRegister, displayFile, AdminRegister, AdminLogin, EmployerRegister, EmployerLogin, WorkerLogin, FindJobs, ViewSkills } from "../controller/authentication";
+import { WorkerRegister, displayFile, AdminRegister, AdminLogin, EmployerRegister, EmployerLogin, WorkerLogin, FindJobs, ViewSkills, DropdownComp, AddNewCompanyOwner, Workers } from "../controller/authentication";
 import rateLimit from "express-rate-limit";
 import { uploadResume } from "../file/upload";
 
@@ -9,7 +9,7 @@ const router = Router()
 // router.get("/local", TotalWorkers)
 router.get("/display", displayFile)
 router.get("/jobs", FindJobs)
-
+router.get("/workers", Workers)
 
 
 // Register the Admin:
@@ -313,5 +313,8 @@ router.post(
 )
 
 router.get("/ViewSkills", ViewSkills)
+router.get("/dropdown", DropdownComp)
+
+router.post("/companyOwner", AddNewCompanyOwner)
 
 export default router

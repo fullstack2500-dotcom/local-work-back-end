@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
-import { WorkerRegisterSchema, EmployerSchema, LoginSchema, AdminSchema, AdminLoginSchema } from "../validator/authentication";
+import { WorkerRegisterSchema, EmployerSchema, LoginSchema, AdminSchema, AdminLoginSchema, OnlyAccepted } from "../validator/authentication";
 import jwt from "jsonwebtoken"
 import Worker from "../model/Worker";
 import { instanceErrors, mainError } from "../errors/showErrors";
@@ -9,6 +9,10 @@ import { resume } from "../file/upload";
 import Employer from "../model/Employer";
 import Job from "../model/Job";
 import Skill from "../model/Skill";
+import { AddCompanyOwner } from "../validator/authentication";
+import CompanyOwner from "../model/CompanyOwner";
+import Company from "../model/Company";
+import Industry from "../model/Industry";
 
 
 
@@ -290,8 +294,13 @@ export const WorkerLogin = async (req: Request, res: Response) => {
 
 // For the FindJobs:
 export const FindJobs = async (req: Request, res: Response) => {
+  const validatedApp = OnlyAccepted.safeParse({ status: "ACCEPTED" })
+  if (!validatedApp.success) { const errors = validatedApp.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message })}
+
+  const { status } = validatedApp.data
+
   try {
-    const jobs = await Job.find().sort({ createdAt: -1 })
+    const jobs = await Job.find({ status }).sort({ createdAt: -1 })
     if (!jobs.length) return res.status(200).json({ success: true, message: "No jobs available" })
 
     return res.status(200).json({
@@ -326,6 +335,76 @@ export const ViewSkills = async (req: Request, res: Response) => {
   } catch (error: unknown) {
     mainError(
       error, 
+      res
+    )
+  }
+}
+
+
+
+
+// Display Dropdown Companies:
+export const DropdownComp = async (req: Request, res: Response) => {
+  try {
+    const Companies = await Company.find().sort({ createdAt: -1 })
+    const Industries = await Industry.find().sort({ createdAt: -1 })
+    if (!Companies.length) return res.status(200).json({ success: true, Companies, Industries, message: "No Companies Available" })
+    if (!Industries.length) return res.status(200).json({ success: true, Companies, Industries, message: "No Industries"})
+
+    return res.status(200).json({ success: true, Companies, Industries })
+  } catch (error) {
+    mainError(
+      error,
+      res
+    )
+  }
+}
+
+
+
+
+
+
+
+export const AddNewCompanyOwner = async (req: Request, res: Response) => {
+  const validatedEmail = AddCompanyOwner.safeParse(req.body)
+  if (!validatedEmail.success) { const errors = validatedEmail.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message })}
+
+  const { email, phone } = validatedEmail.data
+
+  try {
+    const newCompanyOwner = new CompanyOwner({ email, phone })
+    await newCompanyOwner.save()
+
+    return res.status(201).json({
+      success: true,
+      message: "Company Owner Successfully Added!"
+    })
+  } catch (error) {
+    instanceErrors(
+      error,
+      res
+    )
+  }
+}
+
+
+
+
+
+// Display Workers:
+export const Workers = async (req: Request, res: Response) => {
+  try {
+    const Workers = await Worker.find().sort({ createdAt: -1 })
+    if (!Workers.length) return res.status(200).json({ success: true, message: "No Workers Available" })
+
+    return res.status(200).json({
+      success: true,
+      Workers
+    })
+  } catch (error) {
+    mainError(
+      error,
       res
     )
   }

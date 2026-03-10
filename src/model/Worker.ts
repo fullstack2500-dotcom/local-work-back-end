@@ -31,8 +31,11 @@ export interface IWorker extends Document {
   rating: Number,
   hourlyRate: Number,
   education: string,
-  previousJobs: string,
-  status: string
+  title: string,
+  company: string,
+  duration: string,
+  status: string,
+  reviews: Number
 }
 
 const WorkerSchema: Schema = new Schema({
@@ -60,9 +63,14 @@ const WorkerSchema: Schema = new Schema({
     { type: String }
   ],
   previousJobs: [
-    { type: String }
+    {
+      title: { type: String },
+      company: { type: String },
+      duration: { type: String }
+    }
   ],
-  status: { type: String, default: "pending" }
+  status: { type: String, default: "pending" },
+  reviews: { type: Number, default: 0 }
 }, { timestamps: true })
 
 export default model<IWorker>("Worker", WorkerSchema)

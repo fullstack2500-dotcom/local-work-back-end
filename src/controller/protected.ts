@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { ApplicationSchema, CompanySchema, JobOverviewSchema, JobSchema, LocationSchema, TagSchema, employerIdSchema, ViewProfile, WorkerIDJob, JobIDJob } from "../validator/protected";
+import { ApplicationSchema, CompanySchema, JobOverviewSchema, JobSchema, LocationSchema, TagSchema, employerIdSchema, ViewProfile, WorkerIDJob, JobIDJob, ApplicationStatusUpdate, OnlyAccepted, UpdateApplication, InterviewDate, CompanySchemaID, IsAppliedS } from "../validator/protected";
 import Job from "../model/Job";
 import { filterXSS } from "xss";
 import Application from "../model/Application";
@@ -11,6 +11,7 @@ import Tag from "../model/Tag";
 import Company from "../model/Company";
 import { success } from "zod";
 import Employer from "../model/Employer";
+import Worker from "../model/Worker";
 
 // Dashboard:
 export const Dashboard = async (req: Request, res: Response) => {
@@ -38,11 +39,21 @@ export const newApplication = async (req: Request, res: Response) => {
     req.user.id
 
   const validatedData = ApplicationSchema.safeParse(req.body)
-  if (validatedData.error) { const errors = validatedData.error.issues; return res.status(400).json({ success: false, message: errors[0].message }) }
+  const validatedStatus = OnlyAccepted.safeParse({ status: "ACCEPTED" })
 
+  if (validatedData.error) { const errors = validatedData.error.issues; return res.status(400).json({ success: false, message: errors[0].message }) }
+  if (validatedStatus.error) { const errors = validatedStatus.error.issues; return res.status(400).json({ success: false, message: errors[0].message })}
+  
   const { job, worker } = validatedData.data
+  const { status } = validatedStatus.data
 
   try {
+    const JobAccepted = await Job.findOne({ _id: job, status })
+    if (!JobAccepted) return res.status(400).json({ success: false, message: "Job does not exist / is not yet accepted" })
+
+    const Applied = await Application.findOne({ job, worker })
+    if (Applied) return res.status(400).json({ success: false, message: "Application already exists" })
+
     const newApplication = new Application({ job, worker })
     await newApplication.save()
 
@@ -138,51 +149,21 @@ export const createJob = async (req: Request, res: Response) => {
 
 
 
-// View Job Applications:
-// export const viewJobApplications = async (req: Request, res: Response) => {
-//   const validatedUserId = UserSchema.safeParse({ user: req.user.id })
-//   if (validatedUserId.error) {
-//     const errors = validatedUserId.error.issues
-//         return res.status(400).json({ success: false, message: errors[0].message })
-//   }
-
-//   const { user } = validatedUserId.data
-
-//   try {
-//     const applications = await Application.find({ worker: user }).sort({ createdAt: -1 })
-
-//     if (!applications) {
-//       return res.status(200).json({ success: true, message: "You currently don't have any applications" })
-//     }
-
-//     return res.status(200).json({
-//       success: true,
-//       applications
-//     })
-//   } catch (error) {
-//     console.error(error)
-
-//     return res.status(500).json({
-//       success: false,
-//       message: "Internal Server Error"
-//     })
-//   }
-// }
-
-
-
-
 // View Jobs:
 export const viewJobs = async (req: Request, res: Response) => {
   const validatedWorker = WorkerIDJob.safeParse({ worker: req.user.id })
+  const validatedStatus = OnlyAccepted.safeParse({ status: "ACCEPTED" })
+
   if (!validatedWorker.success) { const errors = validatedWorker.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message })}
-  
+  if (!validatedStatus.success) { const errors = validatedStatus.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message })}
+
   const { worker } = validatedWorker.data
+  const { status } = validatedStatus.data
   let jobArray = []
 
   try {
-    const jobs = await Job.find().sort({ createdAt: -1 })
-    if (jobs.length < 1) return res.status(200).json({ success: true, message: "No jobs available" })
+    const jobs = await Job.find({ status }).sort({ createdAt: -1 })
+    if (jobs.length < 1) return res.status(200).json({ success: true, jobs, message: "No jobs available" })
 
     for (let jobIndex = 0; jobIndex < jobs.length; jobIndex++) {
       const validatedJob = JobIDJob.safeParse({ job: String(jobs[jobIndex]._id) })
@@ -217,6 +198,50 @@ export const viewJobs = async (req: Request, res: Response) => {
 }
 
 
+
+
+
+// Display Locations:
+export const Locations = async (req: Request, res: Response) => {
+  try {
+    const Locations = await Location.find().sort({ createdAt: -1 })
+    if (!Locations.length) return res.status(200).json({ success: true, Locations, message: "No locations"})
+
+    return res.status(200).json({
+      success: true,
+      Locations
+    })
+  } catch (error) {
+    mainError(
+      error,
+      res
+    )
+  }
+}
+
+
+// Is Applied Controller:
+export const IsApplied = async (req: Request, res: Response) => {
+  const validatedAppliedStatus = IsAppliedS.safeParse({ worker: req.user.id, job: req.params.job })
+  if (!validatedAppliedStatus.success) { const errors = validatedAppliedStatus.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message })}
+
+  const { worker, job } = validatedAppliedStatus.data
+
+  try {
+    const application = await Application.findOne({ worker, job })
+    if (!application) return res.status(400).json({ success: false, isApplied: false })
+
+    return res.status(200).json({
+      success: true,
+      isApplied: true
+    })
+  } catch (error) {
+    mainError(
+      error,
+      res
+    )
+  }
+}
 
 
 
@@ -399,35 +424,204 @@ export const AddTag = async (req: Request, res: Response) => {
 
 
 
+// View Job Applications:
+export const viewApplicationsEmployer = async (req: Request, res: Response) => {
+  try {
+    const Applications = await Application.find().populate("job").populate("worker").sort({ createdAt: -1 })
+    if (!Applications.length) return res.status(200).json({ success: true, message: "No Applications", Applications })
 
-// export const viewProfile = async (req: Request, res: Response) => {
-//   const validatedUser = ViewProfile.safeParse({ id: req.user.id, role: req.user.role })
-//   if (validatedUser.error) {
-//     return res.status(400).json({ success: false, message: "Failed to validated User ID"} );
-//   }
-
-//   const { id, role } = validatedUser.data
-//   try {
-//     const viewProfile = await User.findOne({ _id: id, role }).select("-password").exec()
-//     if (!viewProfile) return res.status(404).json({ success: false, message: "User not found" });
-
-//     return res.status(200).json({
-//       success: true,
-//       user: viewProfile
-//     })
-//   } catch (error) {
-
-//     mainError(
-//       error,
-//       res
-//     )
-//   }
-// }
+    return res.status(200).json({
+      success: true,
+      Applications
+    })
+  } catch (error) {
+    mainError(
+      error,
+      res
+    )
+  }
+}
 
 
 
 
 
+// View Job Applications:
+export const viewApplications = async (req: Request, res: Response) => {
+  const validatedWorker = WorkerIDJob.safeParse({ worker: req.user.id })
+
+  if (!validatedWorker.success) { const errors = validatedWorker.error.issues; return res.status(400).json({ success: false, message: errors[0].message }) }
+
+  const { worker } = validatedWorker.data
+
+  try {
+    const Applications = await Application.find({ worker }).populate("job").sort({ createdAt: -1 })
+    if (!Applications.length) return res.status(200).json({ success: true, message: "No Applications", Applications })
+
+    return res.status(200).json({
+      success: true,
+      Applications
+    })
+  } catch (error) {
+    mainError(
+      error,
+      res
+    )
+  }
+}
+
+
+
+
+
+// Update Status of Application:
+export const WithdrawApplication = async (req: Request, res: Response) => {
+  const validatedData = ApplicationStatusUpdate.safeParse({ _id: req.body._id, status: "Withdrawed" })
+  if (!validatedData.success) { const errors = validatedData.error.issues; return res.status(400).json({ success: false, message: errors[0].message })}
+
+  const { status, _id } = validatedData.data
+
+  try {
+    const application = await Application.findOne({ _id })
+    if (!application) return res.status(404).json({ success: false, message: "Application was not found" })
+
+    application.status = status || application.status
+    await application.save()
+
+    return res.status(200).json({
+      success: true,
+      message: "Application is Withdrawed"
+    })
+  } catch (error) {
+    mainError(
+      error,
+      res
+    )
+  }
+}
+
+
+
+
+
+// Accept Application:
+export const UpdateApp = async (req: Request, res: Response) => {
+  const validatedStatus = UpdateApplication.safeParse(req.body)
+  if (!validatedStatus.success) { const errors = validatedStatus.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message })}
+
+  const { _id, status, timeline } = validatedStatus.data
+
+  try {
+    const application = await Application.findOne({ _id })
+    if (!application) return res.status(404).json({ success: false, message: "Application not found" })
+
+    application.status = status || application.status
+    application.timeline = timeline || application.timeline
+    await application.save()
+
+    return res.status(200).json({
+      success: true,
+      message: "Application successfully updated!"
+    })
+  } catch (error) {
+    mainError(
+      error,
+      res
+    )
+  } 
+}
+
+
+
+
+// Update Interview Date:
+export const UpdateInterview = async (req: Request, res: Response) => {
+  const validatedDate = InterviewDate.safeParse(req.body)
+  if (!validatedDate.success) { const errors = validatedDate.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message })}
+
+  const { _id, interviewDate } = validatedDate.data
+  const newDate = interviewDate.split("-")
+
+  try {
+    const monthArray = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+    const year = newDate[0]
+    const month = monthArray[Number(newDate[1]) - 1]
+    const day = newDate[1 + 1]
+
+    const Date = `${month} ${day}, ${year}`
+    const find_application = await Application.findOne({ _id })
+
+    if (!find_application) return res.status(404).json({ success: false, message: "Application not found" })
+    find_application.interviewDate = Date || find_application.interviewDate
+
+    await find_application.save()
+
+    return res.status(200).json({
+      success: true,
+      message: "Interview Date Successfully Updated!"
+    })
+  } catch (error) {
+    mainError(
+      error,
+      res
+    )
+  }
+}
+
+
+
+
+// View Company Details:
+export const CompanyDetails = async (req: Request, res: Response) => {
+  const validatedCompany = CompanySchemaID.safeParse({ _id: req.user.company })
+  if (!validatedCompany.success) { const errors = validatedCompany.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message })}
+
+  const { _id } = validatedCompany.data
+  let TotalApplications = []
+
+  try {
+    const company = await Company.findOne({ _id }).populate("industry").populate("location").populate("companyOwner")
+    const jobs = await Job.find({ company: _id }).sort({ createdAt: -1 })
+
+    for (let compIndex = 0; compIndex < jobs.length; compIndex++) {
+      const app = await Application.findOne({ job: String(jobs[compIndex]._id) })
+      if (app) TotalApplications.push(app)
+    }
+
+    if (!company) return res.status(404).json({ success: false, message: "Company Not Found" })
+
+    return res.status(200).json({
+      success: true,
+      company,
+      Jobs: jobs.length,
+      TotalApplications: TotalApplications.length
+    })
+  } catch (error) {
+    mainError(
+      error,
+      res
+    )
+  }
+}
+
+
+// View Workers:
+export const ViewWorkers = async (req: Request, res: Response) => {
+  try {
+    const Workers = await Worker.find().sort({ createdAt: -1 })
+    if (!Workers.length) return res.status(200).json({ success: true, Workers })
+
+    return res.status(200).json({
+      success: true,
+      Workers
+    })
+  } catch (error) {
+    mainError(
+      error,
+      res
+    )
+  }
+}
 
 
 

@@ -58,7 +58,6 @@ export const ApplicationSchema = z.object({
 })
 
 
-
 // Company Schema:
 export const Company_IDSchema = z.object({
   Company_ID: z.string("Company ID must be a string"),
@@ -90,6 +89,13 @@ export const WorkerIDJob = z.object({
   worker: z.string("Worker must be a string")
 })
 
+
+// Application Update Status:
+export const ApplicationStatusUpdate = z.object({
+  _id: z.string("Application ID must be a string"),
+  status: z.enum(["Withdrawed"], "Status must be Withdrawed")
+})
+
 // Job ID View Job:
 export const JobIDJob = z.object({
   job: z.string("Job must be a string")
@@ -105,4 +111,49 @@ export const employerIdSchema = z.object({
 // Add Skill:
 export const TagSchema = z.object({
   title: z.string("Title must be a string")
+})
+
+
+// Sort Schema:
+export const SortSchema = z.object({
+  createdAt: z.int("createdAt must be an int")
+})
+
+
+// Only Accepted Jobs:
+export const OnlyAccepted = z.object({
+  status: z.enum(["ACCEPTED"], "Status must be ACCEPTED")
+})
+
+
+// Accept Application:
+export const UpdateApplication = z.object({
+  _id: z.string("_id must be a string"),
+  status: z.enum(["Accepted", "Not Selected", "Interview Scheduled", "Status doesn't match: Accepted, Not Selected, Interview Scheduled"]),
+  timeline: z.enum(["Review", "Interview", "Final Decision"], "Timeline doesn't match: 'Review', 'Interview', 'Final Decision'")
+})
+
+// Add Interview Date:
+export const InterviewDate = z.object({
+  _id: z.string("_id must be a string"),
+  interviewDate: z.string("Interview Date must be a string").date("Interview Date must be in date format")
+})
+
+
+// View Details of the Company:
+export const CompanySchemaID = z.object({
+  _id: z.string("_id must be a string")
+})
+
+
+// Is Applied:
+export const IsAppliedS = z.object({
+  worker: z.string("Worker must be a string"),
+  job: z.string("Job must be a string")
+})
+
+
+// Application ID:
+export const ApplicationID = z.object({
+  _id: z.string("Application ID must be a string")
 })

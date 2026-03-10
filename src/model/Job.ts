@@ -40,7 +40,7 @@ const JobSchema: Schema = new Schema({
   ],
   schedule: { type: String },
   startDate: { type: String, default: "Immediate" },
-  status: { type: String, default: "pending" },
+  status: { type: String, default: "PENDING" },
   positions: { type: Number },
   applyBefore: { type: String },
   email: { type: String },

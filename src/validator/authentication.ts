@@ -107,7 +107,7 @@ export const WorkerRegisterSchema = z.object({
 
 // Employer Schema:
 export const EmployerSchema = z.object({
-  company: z.string("Company must be a string").regex(/^[A-Za-z0-9 ]*$/, "Company should only include letters, digits, and spaces"),
+  company: z.string("Company must be a string"),
   email: z.string("Email must be a string").email("Email must be a valid email"),
   password: z
   .string("Password must be a string")
@@ -148,4 +148,16 @@ export const UserSchema = z.object({
 // Totak Workers Schema for Non-Admins:
 export const TotalWorkerSchemaMain = z.object({
   role: z.enum(["worker"], "Role must be worker")
+})
+
+
+// Only Accepted Jobs:
+export const OnlyAccepted = z.object({
+  status: z.enum(["ACCEPTED"], "Status must be ACCEPTED")
+})
+
+// Add Company Owner:
+export const AddCompanyOwner = z.object({
+  email: z.string("Email must be a string").email("Email must be a valid email"),
+  phone: z.string("Phone is required").regex(/^(\+639)\d{9}$/, "Please enter a valid phone number, ex. +639...")
 })

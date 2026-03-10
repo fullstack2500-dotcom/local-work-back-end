@@ -52,7 +52,24 @@ export const AppStatusSchema = z.object({
 // Update Job Status:
 export const UpdateSchema = z.object({
   id: z.string("Job ID must be a string"),
-  status: z.enum(["accepted", "declined"], "Status must be either accepted or declined")
+  status: z.enum(["ACCEPTED", "DECLINED"], "Status must be either accepted or declined")
 })
 
 
+// Add New Company:
+export const AddNewCompanySchema = z.object({
+  title: z.string("Title must be a string").min(2, "Title must have at least 2 characters").max(50, "Title must not exceed 50 characters"),
+  industry: z.string("Industry must be a string"),
+  location: z.string("Location must be a string"),
+  description: z.string("Description must be a string").min(20, "Description must have at least 20 characters").max(500, "Description must not exceed 500 characters"),
+  noOfEmployees: z.int("Number of Employees must be a number").min(1, "Value should not be < 1").optional(),
+  openPositions: z.int("Open Positions must be a Number").min(1, "Value should not be < 1").optional(),
+  website: z.string("Website must be a string").url("Website must be a valid URL format").optional(),
+  totalApplications: z.int("Total Applications must be a number").optional(),
+  companyOwner: z.string("Company Owner must be a string")
+})
+
+// Add New Industry:
+export const AddNewIndustryValidation = z.object({
+  title: z.string("Title must be a string").min(1, "Title must have at least 1 character").max(50, "Title must not exceed 50 characters")
+})
