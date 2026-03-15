@@ -45,8 +45,8 @@ const rateLimiter = rateLimit({
 // Slow Down:
 const speedLimit = slowDown({
   windowMs: 15 * 60 * 1000,
-  delayAfter: 40,
-  delayMs: (hits) => hits * 120
+  delayAfter: 60,
+  delayMs: (hits) => hits * 60
 })
 
 // Allow app to use rate limiter and speed limiter:

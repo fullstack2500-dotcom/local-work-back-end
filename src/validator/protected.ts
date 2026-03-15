@@ -10,7 +10,7 @@ export const JobSchema = z.object({
   company: z.string("Company must be a string"),
   posted: z.string("Posted By must be the string of the user ID"),
   location: z.string("Location must be a string"),
-  type: z.enum(["Part-Time", "Full-Time", "Contract", "Temporary"], "Type must be Part-Time | Full-Time").optional(),
+  type: z.enum(["Part-Time", "Full-Time", "Contract", "Temporary", "Intern"], "Type must be Part-Time | Full-Time").optional(),
   salary: z.string("Salary must be a string"),
   description: z
           .string("Description must be a string")
@@ -129,7 +129,7 @@ export const OnlyAccepted = z.object({
 // Accept Application:
 export const UpdateApplication = z.object({
   _id: z.string("_id must be a string"),
-  status: z.enum(["Accepted", "Not Selected", "Interview Scheduled", "Status doesn't match: Accepted, Not Selected, Interview Scheduled"]),
+  status: z.enum(["Accepted", "Not Selected", "Interview Scheduled"], "Status doesn't match: Accepted, Not Selected, Interview Scheduled"),
   timeline: z.enum(["Review", "Interview", "Final Decision"], "Timeline doesn't match: 'Review', 'Interview', 'Final Decision'")
 })
 
@@ -145,6 +145,11 @@ export const CompanySchemaID = z.object({
   _id: z.string("_id must be a string")
 })
 
+// Job Schema Id:
+export const JobSchemaID = z.object({
+  job: z.string("Job ID must be a string")
+})
+
 
 // Is Applied:
 export const IsAppliedS = z.object({
@@ -156,4 +161,60 @@ export const IsAppliedS = z.object({
 // Application ID:
 export const ApplicationID = z.object({
   _id: z.string("Application ID must be a string")
+})
+
+
+// Worker ID:
+export const WorkerID = z.object({
+  _id: z.string("Worker ID must be a string")
+})
+
+// Timeline Status:
+export const TimeLineStatus = z.object({
+  timeline: z.enum(["Interview"], "Timeline must be interview"),
+  status: z.enum(["Interview Scheduled"], "Status must be interview scheduled")
+})
+
+// Update Worker:
+export const UpdateWorkerSchema = z.object({
+  _id: z.string("_id must be a string"),
+  name: z.string("Name must be a string").min(3, "Name must have at least 3 characters").max(50, "Name must not exceed 50 characters").regex(/^[A-Za-z0-9 ]*$/, "Name must only include letters, digits, and spaces"), // https://www.servicenow.com/community/itsm-forum/allow-only-alphanumeric-values-and-special-characters/td-p/712231 // https://www.servicenow.com/community/itsm-forum/allow-only-alphanumeric-values-and-special-characters/td-p/712231
+  email: z.string("Email must be a string").email("Email must be a valid email"),
+  phone: z.string("Phone must be a valid phone number").regex(/^(\+639)\d{9}$/, "Please enter a valid phone number, ex. +639..."),
+  location: z.string("Location must be a string"),
+  title: z.string("Title must be string"),
+  experience: z.string("Experience must be a string").regex(/^[A-Za-z0-9 ]*$/, "Name must only include letters, digits, and spaces"),
+  bio: z.string("About Me must be a string"),
+  availability: z.enum(["Full-Time", "Part-Time", "Contract", "Flexible"], "Availability must be either Full-Time, Part-Time, Contract, Flexible"),
+  expectedSalary: z.string("Expected Salary must be a string")
+})
+
+// Update Employer:
+export const UpdateEmployerSchema = z.object({
+  _id: z.string("_id must be a string"),
+  company: z.string("Company must be a string"),
+  email: z.string("Email must be a string").email("Email must be a valid email"),
+  phone: z.string("Phone Number must be a string").regex(/^(\+639)\d{9}$/, "Please enter a valid phone number, ex. +639..."),
+  industry: z.string("Industry must be a string")
+})
+
+// Post Contacts:
+export const PostContacts = z.object({
+  employer: z.string("_id must be a string"),
+  title: z.string("Title must be a string"),
+  description: z.string("Description must be a string"),
+  worker: z.string("Worker must be a string")
+})
+
+// View Employer Profile:
+export const EmployerProfileS = z.object({
+  _id: z.string("Employer ID must be a string")
+})
+
+// Post a Review:
+export const RatingSchema = z.object({
+  worker: z.string("Worker must be a string"),
+  rating: z.int("Rating must be an integer"),
+  skill: z.string("Skill must be a string"),
+  description: z.string("Description must be a string")
 })

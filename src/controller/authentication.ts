@@ -13,6 +13,7 @@ import { AddCompanyOwner } from "../validator/authentication";
 import CompanyOwner from "../model/CompanyOwner";
 import Company from "../model/Company";
 import Industry from "../model/Industry";
+import Rating from "../model/Rating";
 
 
 
@@ -141,6 +142,23 @@ export const WorkerRegister = async (req: Request, res: Response) => {
 
 
 
+// Display Reviews:
+export const Reviews = async (req: Request, res: Response) => {
+  try {
+    const ReviewsDta = await Rating.find().populate("worker").populate("skill").sort({ createdAt: -1 })
+    if (!ReviewsDta.length) return res.status(200).json({ success: true, ReviewsDta, message: "No Reviews yet." })
+
+    return res.status(200).json({
+      success: true,
+      ReviewsDta
+    })
+  } catch (error) {
+    mainError(
+      error,
+      res
+    )
+  }
+}
 
 
 
@@ -300,8 +318,8 @@ export const FindJobs = async (req: Request, res: Response) => {
   const { status } = validatedApp.data
 
   try {
-    const jobs = await Job.find({ status }).sort({ createdAt: -1 })
-    if (!jobs.length) return res.status(200).json({ success: true, message: "No jobs available" })
+    const jobs = await Job.find({ status }).populate("location").sort({ createdAt: -1 })
+    if (!jobs.length) return res.status(200).json({ success: true, jobs, message: "No jobs available" })
 
     return res.status(200).json({
       success: true,
@@ -395,8 +413,8 @@ export const AddNewCompanyOwner = async (req: Request, res: Response) => {
 // Display Workers:
 export const Workers = async (req: Request, res: Response) => {
   try {
-    const Workers = await Worker.find().sort({ createdAt: -1 })
-    if (!Workers.length) return res.status(200).json({ success: true, message: "No Workers Available" })
+    const Workers = await Worker.find().populate("location").sort({ createdAt: -1 })
+    if (!Workers.length) return res.status(200).json({ success: true, Workers, message: "No Workers Available" })
 
     return res.status(200).json({
       success: true,

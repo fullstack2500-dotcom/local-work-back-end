@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { WorkerRegister, displayFile, AdminRegister, AdminLogin, EmployerRegister, EmployerLogin, WorkerLogin, FindJobs, ViewSkills, DropdownComp, AddNewCompanyOwner, Workers } from "../controller/authentication";
+import { WorkerRegister, displayFile, AdminRegister, AdminLogin, EmployerRegister, EmployerLogin, WorkerLogin, FindJobs, ViewSkills, DropdownComp, AddNewCompanyOwner, Workers, Reviews } from "../controller/authentication";
 import rateLimit from "express-rate-limit";
 import { uploadResume } from "../file/upload";
 
@@ -10,6 +10,7 @@ const router = Router()
 router.get("/display", displayFile)
 router.get("/jobs", FindJobs)
 router.get("/workers", Workers)
+router.get("/rating", Reviews)
 
 
 // Register the Admin:

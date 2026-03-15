@@ -1,17 +1,21 @@
 import { Request, Response } from "express";
-import { ApplicationSchema, CompanySchema, JobOverviewSchema, JobSchema, LocationSchema, TagSchema, employerIdSchema, ViewProfile, WorkerIDJob, JobIDJob, ApplicationStatusUpdate, OnlyAccepted, UpdateApplication, InterviewDate, CompanySchemaID, IsAppliedS } from "../validator/protected";
+import { ApplicationSchema, CompanySchema, JobOverviewSchema, JobSchema, LocationSchema, TagSchema, employerIdSchema, ViewProfile, WorkerIDJob, JobIDJob, ApplicationStatusUpdate, OnlyAccepted, UpdateApplication, InterviewDate, CompanySchemaID, IsAppliedS, WorkerID, TimeLineStatus, UpdateWorkerSchema, UpdateEmployerSchema, EmployerProfileS, RatingSchema, PostContacts } from "../validator/protected";
 import Job from "../model/Job";
 import { filterXSS } from "xss";
 import Application from "../model/Application";
 import { UserSchema } from "../validator/authentication";
 import { Types } from "mongoose";
-import Location from "../model/Location";
 import { instanceErrors, mainError } from "../errors/showErrors";
 import Tag from "../model/Tag";
 import Company from "../model/Company";
 import { success } from "zod";
-import Employer from "../model/Employer";
 import Worker from "../model/Worker";
+import Location from "../model/Location";
+import Skill from "../model/Skill";
+import Employer from "../model/Employer";
+import Industry from "../model/Industry";
+import Rating from "../model/Rating";
+import Contact from "../model/Contact";
 
 // Dashboard:
 export const Dashboard = async (req: Request, res: Response) => {
@@ -162,7 +166,7 @@ export const viewJobs = async (req: Request, res: Response) => {
   let jobArray = []
 
   try {
-    const jobs = await Job.find({ status }).sort({ createdAt: -1 })
+    const jobs = await Job.find({ status }).populate("posted").populate("location").sort({ createdAt: -1 })
     if (jobs.length < 1) return res.status(200).json({ success: true, jobs, message: "No jobs available" })
 
     for (let jobIndex = 0; jobIndex < jobs.length; jobIndex++) {
@@ -220,6 +224,59 @@ export const Locations = async (req: Request, res: Response) => {
 }
 
 
+// Post a Contact:
+export const PostContact = async (req: Request, res: Response) => {
+  const validatedData = PostContacts.safeParse({ ...req.body, employer: req.user.id })
+  if (!validatedData.success) { const errors = validatedData.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message })}
+
+  const { employer, title, description, worker } = validatedData.data
+
+  try {
+    const Title = filterXSS(title, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
+    const Description = filterXSS(description, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
+
+    const newContact = new Contact({ employer, title: Title, description: Description, worker })
+    await newContact.save()
+
+    return res.status(201).json({
+      success: true,
+      message: "Contact successfully added!"
+    })
+  } catch (error) {
+    instanceErrors(
+      error,
+      res
+    )
+  }
+}
+
+
+// Open Positions:
+export const OpenPositionsTotalApplications = async (req: Request, res: Response) => {
+  const validatedData = EmployerProfileS.safeParse({ _id: req.user.id })
+  const validatedComp = CompanySchemaID.safeParse({ _id: req.user.company })
+  if (!validatedData.success) { const errors = validatedData.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message })}
+
+  const { _id } = validatedData.data
+  try {
+    const OpenPositions = await Job.find({ posted: _id }).sort({ createdAt: -1 })
+    const jobs = await Job.find({ company: _id }).sort({ createdAt: -1})
+    const TotalApplications = await Application.find({ _id }).sort({ createdAt: -1 })
+
+    return res.status(200).json({
+      success: true,
+      OpenPositions,
+      TotalApplications
+    })
+  } catch (error) {
+    instanceErrors(
+      error,
+      res
+    )
+  }
+}
+
+
 // Is Applied Controller:
 export const IsApplied = async (req: Request, res: Response) => {
   const validatedAppliedStatus = IsAppliedS.safeParse({ worker: req.user.id, job: req.params.job })
@@ -243,6 +300,146 @@ export const IsApplied = async (req: Request, res: Response) => {
   }
 }
 
+
+// View Profile:
+export const ViewProfileController = async (req: Request, res: Response) => {
+  const validatedWorker = WorkerID.safeParse({ _id: req.user.id })
+  const validatedStatus = TimeLineStatus.safeParse({ status: "Interview Scheduled", timeline: "Interview" })
+
+  if (!validatedWorker.success) { const errors = validatedWorker.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message })}
+  if (!validatedStatus.success) { const errors = validatedStatus.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message })}
+
+  const { _id } = validatedWorker.data
+  const { status, timeline } = validatedStatus.data
+
+  try {
+    const WorkerProf = await Worker.findOne({ _id })
+    const locations = await Location.find().sort({ createdAt: -1 })
+    if (!WorkerProf) return res.status(404).json({ success: false, message: "Worker doesn't exist"})
+
+    const applications = await Application.find({ worker: _id }).sort({ createdAt: -1 })
+    const skills = await Skill.find().sort({ createdAt: -1 })
+    const interviews = await Application.find({ worker: _id, status, timeline })
+
+    return res.status(200).json({
+      success: true,
+      WorkerProf,
+      Applications: applications.length,
+      Interviews: interviews.length,
+      Locations: locations,
+      Skills: skills
+    })
+  } catch (error) {
+    mainError(
+      error,
+      res
+    )
+  }
+}
+
+
+// Update Worker:
+export const UpdateWorker = async (req: Request, res: Response) => {
+  const validatedWorker = UpdateWorkerSchema.safeParse({ ...req.body, _id: req.user.id })
+  if (!validatedWorker.success) { const errors = validatedWorker.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message })}
+
+  const { _id, name, email, phone, location, title, experience, bio, availability, expectedSalary } = validatedWorker.data
+  const sanitizedBio = filterXSS(bio, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
+
+  try {
+    const WorkerInfo = await Worker.findOne({ _id })
+    if (!WorkerInfo) return res.status(404).json({ success: false, message: "Worker Not Found" })
+
+    WorkerInfo.name = name || WorkerInfo.name
+    WorkerInfo.email = email || WorkerInfo.email
+
+    WorkerInfo.phoneNumber = phone || WorkerInfo.phoneNumber
+    WorkerInfo.location = location || WorkerInfo.location
+
+    WorkerInfo.skillCategory = title || WorkerInfo.skillCategory
+    WorkerInfo.yearsOfExperience = experience || WorkerInfo.yearsOfExperience
+
+    WorkerInfo.about_me = sanitizedBio || WorkerInfo.about_me
+    WorkerInfo.availability = availability || WorkerInfo.availability
+
+    WorkerInfo.expected_salary 
+    = expectedSalary || WorkerInfo.expected_salary
+
+    await WorkerInfo.save()
+
+    return res.status(200).json({
+      success: true,
+      message: "Worker Profile Success Update!"
+    })
+
+  } catch (error) {
+    instanceErrors(
+      error,
+      res
+    )
+  }
+}
+
+
+// Employers:
+// Update Employer:
+export const UpdateEmployer = async (req: Request, res: Response) => {
+  const validatedEmployer = UpdateEmployerSchema.safeParse({ ...req.body, _id: req.user.id })
+  if (!validatedEmployer.success) { const errors = validatedEmployer.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message })}
+
+  const { _id, company, email, phone, industry } = validatedEmployer.data
+
+  try {
+    const EmployerInformation = await Employer.findOne({ _id })
+    if (!EmployerInformation) return res.status(404).json({ success: false, message: "Employer Not Found" })
+
+    EmployerInformation.company = company || EmployerInformation.company
+    EmployerInformation.email = email || EmployerInformation.email
+
+    EmployerInformation.phone = phone || EmployerInformation.phone
+    EmployerInformation.industry = industry || EmployerInformation.industry
+
+    await EmployerInformation.save()
+    
+    return res.status(200).json({
+      success: true,
+      message: "Employer has successfully been updated!"
+    })
+  } catch (error) {
+    mainError(
+      error,
+      res
+    )
+  }
+}
+
+
+
+// Employers:
+// View Employer Profile:
+export const EmployerProfileController = async (req: Request, res: Response) => {
+  const validatedEmployer = EmployerProfileS.safeParse({ _id: req.user.id })
+  if (!validatedEmployer.success) { const errors = validatedEmployer.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message })}
+
+  const { _id } = validatedEmployer.data
+
+  try {
+    const EmployerProf = await Employer.findOne({ _id })
+    const Industries = await Industry.find().sort({ createdAt: -1 })
+    if (!EmployerProf) return res.status(404).json({ success: false, message: "Employer Not Found" })
+
+    return res.status(200).json({
+      success: true,
+      EmployerProf,
+      Industries
+    })
+  } catch (error) {
+    mainError(
+      error,
+      res
+    )
+  }
+}
 
 
 // Employers:
@@ -276,6 +473,30 @@ export const viewPostedJobs = async (req: Request, res: Response) => {
 
 
 
+// Post a Review:
+export const ReviewUpload = async (req: Request, res: Response) => {
+  const validatedInfo = RatingSchema.safeParse({ ...req.body, worker: req.user.id })
+  if (!validatedInfo.success) { const errors = validatedInfo.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message })}
+
+  const { worker, rating, skill, description } = validatedInfo.data
+
+  try {
+    const Description = filterXSS(description, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
+    const NewRate = new Rating({ worker, rating, skill, description: Description })
+
+    await NewRate.save()
+
+    return res.status(201).json({
+      success: true,
+      message: "Review Successfully Uploaded!"
+    })
+  } catch (error) {
+    instanceErrors(
+      error,
+      res
+    )
+  }
+}
 
 
 
@@ -581,10 +802,10 @@ export const CompanyDetails = async (req: Request, res: Response) => {
 
   try {
     const company = await Company.findOne({ _id }).populate("industry").populate("location").populate("companyOwner")
-    const jobs = await Job.find({ company: _id }).sort({ createdAt: -1 })
+    const jobs = await Job.find({ company: _id }).populate("posted").populate("location").sort({ createdAt: -1 })
 
     for (let compIndex = 0; compIndex < jobs.length; compIndex++) {
-      const app = await Application.findOne({ job: String(jobs[compIndex]._id) })
+      const app = await Application.findOne({ job: String(jobs[compIndex]._id) }).populate("worker").populate("job")
       if (app) TotalApplications.push(app)
     }
 
@@ -594,7 +815,9 @@ export const CompanyDetails = async (req: Request, res: Response) => {
       success: true,
       company,
       Jobs: jobs.length,
-      TotalApplications: TotalApplications.length
+      JobsInfo: jobs,
+      TotalApplications: TotalApplications.length,
+      TotalApplicationsArray: TotalApplications
     })
   } catch (error) {
     mainError(

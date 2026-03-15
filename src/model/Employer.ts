@@ -21,7 +21,7 @@ const EmployerSchema: Schema = new Schema({
   email: { type: String, required: [true, "Email is required"], unique: [true, "Email is already in use"] },
   password: { type: String, required: [true, "Password is required"], select: false },
   phone: { type: String, required: [true, "Phone is required"] },
-  industry: { type: String, required: [true, "Industry is required"] },
+  industry: { type: Schema.Types.ObjectId, required: [true, "Industry is required"] },
   profile: { type: String, default: "default.jpg" },
   permit: { type: String },
   status: { type: String, default: "pending" },
