@@ -1,9 +1,9 @@
-import { Document, Schema, ObjectId, model } from "mongoose";
+import { Document, Schema, ObjectId, model, Types } from "mongoose";
 
 export interface IJob extends Document {
   title: string,
   company: string,
-  posted: string,
+  posted: Types.ObjectId,
   location: string,
   type: string,
   salary: string,
@@ -15,7 +15,8 @@ export interface IJob extends Document {
   schedule: string,
   startDate: string,
   status: string,
-  positions: Number,
+  positions: number,
+  category: string,
   applyBefore: string,
   contactEmail: string,
   contactPhone: string
@@ -41,8 +42,12 @@ const JobSchema: Schema = new Schema({
   schedule: { type: String },
   startDate: { type: String, default: "Immediate" },
   status: { type: String, default: "PENDING" },
-  positions: { type: Number },
-  applyBefore: { type: String },
+  positions: {
+    type: Number,
+    default: 0
+  },
+  category: { type: String },
+  applyBefore: { type: String, default: "N/A" },
   email: { type: String },
   phone: { type: String }
 }, { timestamps: true })

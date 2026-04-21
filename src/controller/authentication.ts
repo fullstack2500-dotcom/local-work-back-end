@@ -5,16 +5,12 @@ import jwt from "jsonwebtoken"
 import Worker from "../model/Worker";
 import { instanceErrors, mainError } from "../errors/showErrors";
 import Admin from "../model/Admin";
-import { resume } from "../file/upload";
 import Employer from "../model/Employer";
 import Job from "../model/Job";
 import Skill from "../model/Skill";
-import { AddCompanyOwner } from "../validator/authentication";
-import CompanyOwner from "../model/CompanyOwner";
-import Company from "../model/Company";
 import Industry from "../model/Industry";
 import Rating from "../model/Rating";
-
+import { filterXSS } from "xss";
 
 
 
@@ -24,6 +20,7 @@ export const displayFile = async (req: Request, res: Response) => {
     success: true
   })
 }
+
 
 
 // Register Admin:
@@ -51,10 +48,6 @@ export const AdminRegister = async (req: any, res: Response) => {
     )
   }
 }
-
-
-
-
 
 
 
@@ -89,56 +82,91 @@ export const AdminLogin = async (req: Request, res: Response) => {
 
 
 
-
-export const uploadResume = async (req: any, res: any) => {
-  resume(req, res, (err) => {
-      if (err) { console.error(err); return res.status(500).json({ error: err }); }
-      if (!req.file) return res.status(400).json({ error: 'Please send file' });
-
-      console.log(req.file);
-      res.send('File uploaded!');
-    });
-}
-
-
-
-
-
-// Register The User:
 export const WorkerRegister = async (req: Request, res: Response) => {
-  const validatedData = WorkerRegisterSchema.safeParse(req.body)
-  if (validatedData.error) {
-    const errors = validatedData.error.issues
-    return res.status(400).json({
-        success: false,
-            message: errors[0].message
-    })
-  }
-
-  const { name, email, phoneNumber, password, role, skills, skillCategory, photo, resume } = validatedData.data;
-
   try {
-    const hash = await bcrypt.hash(password, 12);
-    const newWorker = new Worker({ name, email, phoneNumber, password: hash, role, skills, skillCategory, photo, resume })
-    
-    await newWorker.save()
+    const files = req.files as {
+      [fieldname: string]: Express.Multer.File[];
+    };
 
-    const token = jwt.sign({ id: newWorker._id, role: newWorker.role }, process.env.JWT_SECRET as string, { expiresIn: '1h' })
-    res.cookie('token', token, { expires: new Date(Date.now() + 60 * 60 * 1000), httpOnly: true, sameSite: 'strict' })
+    const resume = files?.resume?.[0];
+    const photo = files?.photo?.[0];
+
+    // REQUIRED RESUME CHECK
+    if (!resume) {
+      return res.status(400).json({
+        success: false,
+        message: "Resume is required",
+      });
+    }
+
+    const payload = {
+      ...req.body,
+      resume: resume.filename,
+      photo: photo?.filename || null,
+    };
+
+    const validatedData = WorkerRegisterSchema.safeParse(payload);
+
+    if (!validatedData.success) {
+      return res.status(400).json({
+        success: false,
+        message: validatedData.error.issues[0].message,
+      });
+    }
+
+    const {
+      name,
+      email,
+      phoneNumber,
+      password,
+      role,
+      skills,
+      skill,
+      resume: resumeFile,
+      photo: photoFile,
+    } = validatedData.data;
+
+    const hash = await bcrypt.hash(password, 12);
+
+    const newWorker = new Worker({
+      name,
+      email,
+      phoneNumber,
+      password: hash,
+      role,
+      skills,
+      skill,
+      resume: resumeFile,
+      photo: photoFile,
+    });
+
+    await newWorker.save();
+
+    const token = jwt.sign(
+      {
+        id: newWorker._id,
+        role: newWorker.role,
+        status: newWorker.status,
+      },
+      process.env.JWT_SECRET as string,
+      { expiresIn: "1h" }
+    );
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      sameSite: "strict",
+      secure: process.env.NODE_ENV === "production",
+      expires: new Date(Date.now() + 60 * 60 * 1000),
+    });
 
     return res.status(201).json({
       success: true,
-      message: "Worker Successfully Registered!"
-    })
-
-  } catch (error: unknown) {
-
-    instanceErrors(
-      error,
-      res
-    )
+      message: "Worker Successfully Registered!",
+    });
+  } catch (error) {
+    instanceErrors(error, res);
   }
-}
+};
 
 
 
@@ -162,36 +190,80 @@ export const Reviews = async (req: Request, res: Response) => {
 
 
 
-// Register The User:
+// Register the Employer:
 export const EmployerRegister = async (req: Request, res: Response) => {
-  const validatedData = EmployerSchema.safeParse(req.body)
-  if (validatedData.error) { const errors = validatedData.error.issues; return res.status(400).json({ success: false, message: errors[0].message }) }
+  const validatedData = EmployerSchema.safeParse(req.body);
 
-  const { company, email, password, phone, industry, permit } = validatedData.data
+  if (validatedData.error) {
+    const errors = validatedData.error.issues;
+    return res.status(400).json({
+      success: false,
+      message: errors[0].message,
+    });
+  }
+
+  const { company, email, password, phone, industry } = validatedData.data;
+  const permitFile = req.file;
+
+  if (!permitFile) {
+    return res.status(400).json({
+      success: false,
+      message: "Business permit is required",
+    });
+  }
+
+  const Company = filterXSS(company, {
+    whiteList: {},
+    stripIgnoreTag: true,
+    stripIgnoreTagBody: true,
+  });
+
+  const Industry = filterXSS(industry, {
+    whiteList: {},
+    stripIgnoreTag: true,
+    stripIgnoreTagBody: true,
+  });
 
   try {
-    const salt = await bcrypt.genSalt(12)
-    const hash = await bcrypt.hash(password, salt)
+    const salt = await bcrypt.genSalt(12);
+    const hash = await bcrypt.hash(password, salt);
 
-    const newEmployer = new Employer({ company, email, password: hash, phone, industry, permit })
-    await newEmployer.save()
+    const newEmployer = new Employer({
+      company: Company,
+      email,
+      password: hash,
+      phone,
+      industry: Industry,
+      permit: permitFile.filename, // ✅ STORE FILE HERE
+    });
 
-    const token = jwt.sign({ id: newEmployer._id, role: newEmployer.role, company: newEmployer.company }, process.env.JWT_SECRET as string, { expiresIn: '1h' })
-    res.cookie('token', token, { expires: new Date(Date.now() + 60 * 60 * 1000), httpOnly: true, sameSite: 'strict' })
+    await newEmployer.save();
+
+    const token = jwt.sign(
+      {
+        id: newEmployer._id,
+        role: newEmployer.role,
+        company: newEmployer.company,
+        status: newEmployer.status,
+      },
+      process.env.JWT_SECRET as string,
+      { expiresIn: "1h" }
+    );
+
+    res.cookie("token", token, {
+      expires: new Date(Date.now() + 60 * 60 * 1000),
+      httpOnly: true,
+      sameSite: "strict",
+    });
 
     return res.status(200).json({
       success: true,
-      message: "Employee Registered Successfully!"
-    })
+      message: "Employer Registered Successfully!",
+    });
   } catch (error: unknown) {
-    instanceErrors(
-      error,
-      res
-    )
+    instanceErrors(error, res);
   }
-}
-
-
+};
 
 
 
@@ -199,20 +271,9 @@ export const EmployerRegister = async (req: Request, res: Response) => {
 export const EmployerLogin = async (req: Request, res: Response) => {
   const validatedData = LoginSchema.safeParse(req.body)
 
-  if (validatedData.error) {
-    const errors = validatedData.error.issues
-    return res.status(400).json({
-        success: false,
-            message: errors[0].message
-    })
-  }
+  if (validatedData.error) { const errors = validatedData.error.issues; return res.status(400).json({ success: false, message: errors[0].message })}
 
-  // Validated email and password:
-  const {
-    email,
-    password,
-    role
-  } = validatedData.data
+  const { email, password, role } = validatedData.data
 
   try {
     const user = await Employer.findOne({ email }).select("+password")
@@ -224,15 +285,13 @@ export const EmployerLogin = async (req: Request, res: Response) => {
     const verify = await Employer.findOne({ email: user.email, role })
     if (!verify) return res.status(400).json({ success: false, message: "Incorrect Email / Password" })
 
-    const token = jwt.sign({ id: user._id, role: user.role, company: user.company }, process.env.JWT_SECRET as string, {
+    if (user.status === "deleted" || user.status === "pending" || user.status === "not_active") return res.status(400).json({ success: false, message: "Incorrect Email / Password" })
+
+    const token = jwt.sign({ id: user._id, role: user.role, company: user.company, status: user.status }, process.env.JWT_SECRET as string, {
       expiresIn: '1h'
     })
 
-    res.cookie('token', token, {
-      expires: new Date(Date.now() + 60 * 60 * 1000),
-      httpOnly: true,
-      sameSite: 'strict'
-    })
+    res.cookie('token', token, { expires: new Date(Date.now() + 60 * 60 * 1000), httpOnly: true, sameSite: 'strict' })
     console.log(req.cookies)
 
     return res.status(200).json({
@@ -249,26 +308,14 @@ export const EmployerLogin = async (req: Request, res: Response) => {
 
 
 
-
-
 // Login Controller:
 export const WorkerLogin = async (req: Request, res: Response) => {
   const validatedData = LoginSchema.safeParse(req.body)
 
-  if (validatedData.error) {
-    const errors = validatedData.error.issues
-    return res.status(400).json({
-        success: false,
-            message: errors[0].message
-    })
-  }
+  if (validatedData.error) { const errors = validatedData.error.issues; return res.status(400).json({ success: false, message: errors[0].message })}
 
   // Validated email and password:
-  const {
-    email,
-    password,
-    role
-  } = validatedData.data
+  const { email, password, role } = validatedData.data
 
   try {
     const user = await Worker.findOne({ email })
@@ -279,16 +326,14 @@ export const WorkerLogin = async (req: Request, res: Response) => {
 
     const verify = await Worker.findOne({ email: user.email, role })
     if (!verify) return res.status(400).json({ success: false, message: "Incorrect Email / Password" })
+    
+    if (user.status === "deleted" || user.status === "pending" || user.status === "not_active") return res.status(400).json({ success: false, message: "Incorrect Email / Password" })
 
-    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET as string, {
+    const token = jwt.sign({ id: user._id, role: user.role, status: user.status }, process.env.JWT_SECRET as string, {
       expiresIn: '1h'
     })
 
-    res.cookie('token', token, {
-      expires: new Date(Date.now() + 60 * 60 * 1000),
-      httpOnly: true,
-      sameSite: 'strict'
-    })
+    res.cookie('token', token, { expires: new Date(Date.now() + 60 * 60 * 1000), httpOnly: true, sameSite: 'strict' })
     console.log(req.cookies)
 
     return res.status(200).json({
@@ -305,25 +350,25 @@ export const WorkerLogin = async (req: Request, res: Response) => {
 
 
 
-
-
-
-
-
 // For the FindJobs:
 export const FindJobs = async (req: Request, res: Response) => {
   const validatedApp = OnlyAccepted.safeParse({ status: "ACCEPTED" })
   if (!validatedApp.success) { const errors = validatedApp.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message })}
 
   const { status } = validatedApp.data
+  let jobArray = []
 
   try {
     const jobs = await Job.find({ status }).populate("location").sort({ createdAt: -1 })
     if (!jobs.length) return res.status(200).json({ success: true, jobs, message: "No jobs available" })
 
+    for (let job = 0; job < jobs.length; job++) {
+      jobArray.push({ info: jobs[job], IsApplied: false })
+    }
+
     return res.status(200).json({
       success: true,
-      jobs
+      jobs: jobArray
     })
   } catch (error) {
     mainError(
@@ -332,11 +377,6 @@ export const FindJobs = async (req: Request, res: Response) => {
     )
   }
 }
-
-
-
-
-
 
 
 
@@ -360,16 +400,17 @@ export const ViewSkills = async (req: Request, res: Response) => {
 
 
 
-
 // Display Dropdown Companies:
 export const DropdownComp = async (req: Request, res: Response) => {
   try {
-    const Companies = await Company.find().sort({ createdAt: -1 })
     const Industries = await Industry.find().sort({ createdAt: -1 })
-    if (!Companies.length) return res.status(200).json({ success: true, Companies, Industries, message: "No Companies Available" })
-    if (!Industries.length) return res.status(200).json({ success: true, Companies, Industries, message: "No Industries"})
 
-    return res.status(200).json({ success: true, Companies, Industries })
+    if (!Industries.length) return res.status(200).json({ success: true, Industries, message: "No Industries"})
+
+    return res.status(200).json({
+      success: true,
+      Industries
+    })
   } catch (error) {
     mainError(
       error,
@@ -380,40 +421,10 @@ export const DropdownComp = async (req: Request, res: Response) => {
 
 
 
-
-
-
-
-export const AddNewCompanyOwner = async (req: Request, res: Response) => {
-  const validatedEmail = AddCompanyOwner.safeParse(req.body)
-  if (!validatedEmail.success) { const errors = validatedEmail.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message })}
-
-  const { email, phone } = validatedEmail.data
-
-  try {
-    const newCompanyOwner = new CompanyOwner({ email, phone })
-    await newCompanyOwner.save()
-
-    return res.status(201).json({
-      success: true,
-      message: "Company Owner Successfully Added!"
-    })
-  } catch (error) {
-    instanceErrors(
-      error,
-      res
-    )
-  }
-}
-
-
-
-
-
 // Display Workers:
 export const Workers = async (req: Request, res: Response) => {
   try {
-    const Workers = await Worker.find().populate("location").sort({ createdAt: -1 })
+    const Workers = await Worker.find({ status: "accepted" }).populate("location").sort({ createdAt: -1 })
     if (!Workers.length) return res.status(200).json({ success: true, Workers, message: "No Workers Available" })
 
     return res.status(200).json({

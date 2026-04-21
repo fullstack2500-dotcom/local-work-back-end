@@ -45,7 +45,7 @@ const WorkerSchema: Schema = new Schema({
   phoneNumber: { type: String, required: [true, "Phone Number is required"], default: "" },
   role: { type: String, enum: ["worker", "employer", "admin"], default: "worker" },
   skills: [ { type: String, required: [true, "Skill is required"]}],
-  skillCategory: { type: Schema.Types.ObjectId, ref: 'Skill', required: [true, "Skill Category is Required"]},
+  skill: { type: String, required: [true, "Skill Category is Required"] },
   photo: { type: String, default: "" },
   resume: { type: String, default: "" },
   jobTitle: { type: String, default: "N/A" },

@@ -52,7 +52,7 @@ export const AppStatusSchema = z.object({
 // Update Job Status:
 export const UpdateSchema = z.object({
   id: z.string("Job ID must be a string"),
-  status: z.enum(["ACCEPTED", "DECLINED"], "Status must be either accepted or declined")
+  status: z.enum(["ACCEPTED", "DECLINED", "DELETED"], "Status must be either accepted or declined")
 })
 
 
@@ -72,4 +72,28 @@ export const AddNewCompanySchema = z.object({
 // Add New Industry:
 export const AddNewIndustryValidation = z.object({
   title: z.string("Title must be a string").min(1, "Title must have at least 1 character").max(50, "Title must not exceed 50 characters")
+})
+
+// Admin Dashboard:
+export const DashboardSchema = z.object({
+  active: z.enum(["active"], "Only accepted"),
+  pending: z.enum(["pending", "Only pending"]),
+  not_active: z.enum(["not_active"], "Only rejected")
+})
+
+// Admin Profile:
+export const ProfileSchema = z.object({
+  role: z.enum(["all", "worker", "employer"], "all | worker | employer => only")
+})
+
+
+export const UpdateWorkersEmployers = z.object({
+  _id: z.string().min(1, "_id must be a string"),
+  status: z.enum(["active", "not_active", "deleted"]).optional(),
+  role: z.enum(["worker", "employer"]),
+})
+
+// Skill Information:
+export const SkillsInformation = z.object({
+  _id: z.string("Skill must be a string")
 })

@@ -16,22 +16,23 @@ export const JobSchema = z.object({
           .string("Description must be a string")
           .min(50, "Description must be at least 50 characters")
           .max(900, "Description shouldn't exceed 900 characters"),
-  tags: z.array(
-    z.string("Tag must be a string"),
-    "Tags must be an array"
-  ),
   requirements: z.array(
-    z.string("Requirement must be a string"),
+    z.string("Requirement must be a string").min(1, "Requirement must have at least 1 character"),
     "Requirements must be an array"
   ),
   benefits: z.array(
-    z.string("Benefits must be a string"),
+    z.string("Benefits must be a string").min(1, "Benefit must have at least 1 character"),
     "Benefits must be an array"
   ),
-  schedule: z.string("Schedule must be a string"),
+  tags: z.array(
+    z.string("Tag must be a string").min(1, "Tag must have at least a single character").max(30, "Tag must not be more than 30 characters"),
+    "Tags must be an array"
+  ),
+  schedule: z.string("Schedule must be a string").min(1, "Schedule must have at least one character"),
   startDate: z.string("Please enter a date").optional(),
-  positions: z.int("Positions must be an integer").optional(),
-  applyBefore: z.string("Apply Before must be a string").optional(),
+  positions: z.int("Positions must be an integer"),
+  category: z.string("Category must be a string"),
+  applyBefore: z.string("Apply Before must be a string").date("Apply Before must be a date format"),
   email: z.string("Contact Email must be a string").email("Contact Email must be a valid email"),
   phone: z.string("Contact Phone must be a string").regex(/^(\+639)\d{9}$/, "Please enter a valid phone number, ex. +639...")
 })
@@ -54,7 +55,8 @@ export const JobOverviewSchema = z.object({
 // Application Schema:
 export const ApplicationSchema = z.object({
   job: z.string("Job must be the ObjectId String"),
-  worker: z.string("Worker ID must be an ObjectId")
+  worker: z.string("Worker ID must be an ObjectId"),
+  location: z.string("Location ID must be a string")
 })
 
 
@@ -65,7 +67,12 @@ export const Company_IDSchema = z.object({
 
 // Location Schema:
 export const Location_IDSchema = z.object({
-  Location_ID: z.string("Company ID must be a string"),
+  Location_ID: z.string("Location ID must be a string"),
+})
+
+// Skill ID Schema:
+export const SkillID = z.object({
+  skill: z.string("Skill must be a string")
 })
 
 
@@ -125,13 +132,31 @@ export const OnlyAccepted = z.object({
   status: z.enum(["ACCEPTED"], "Status must be ACCEPTED")
 })
 
+export const EmployerIdSchema = z.object({
+  userId: z.string().min(1, "User ID is required"),
+});
+
 
 // Accept Application:
 export const UpdateApplication = z.object({
-  _id: z.string("_id must be a string"),
-  status: z.enum(["Accepted", "Not Selected", "Interview Scheduled"], "Status doesn't match: Accepted, Not Selected, Interview Scheduled"),
-  timeline: z.enum(["Review", "Interview", "Final Decision"], "Timeline doesn't match: 'Review', 'Interview', 'Final Decision'")
-})
+  _id: z.string({
+    message: "_id must be a string",
+  }),
+
+  status: z.enum(
+    ["Accepted", "Not Selected", "Interview Scheduled"],
+    {
+      message: "Status must be: Accepted, Not Selected, Interview Scheduled",
+    }
+  ),
+
+  timeline: z.enum(
+    ["Review", "Interview", "Final Decision"],
+    {
+      message: "Timeline must be: Review, Interview, Final Decision",
+    }
+  ),
+});
 
 // Add Interview Date:
 export const InterviewDate = z.object({
@@ -217,4 +242,9 @@ export const RatingSchema = z.object({
   rating: z.int("Rating must be an integer"),
   skill: z.string("Skill must be a string"),
   description: z.string("Description must be a string")
+})
+
+// Employer ID Schema:
+export const EmployerSchemaid = z.object({
+  employer: z.string("_id must be a string")
 })

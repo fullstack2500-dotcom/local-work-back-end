@@ -1,70 +1,94 @@
 import multer from "multer";
-import path from "node:path";
+import path from "path";
+import fs from "fs";
+import { Request } from "express";
 
+// Ensure the upload directory exists
+const uploadPath = path.join(process.cwd(), "uploads/resumes");
+fs.mkdirSync(uploadPath, { recursive: true });
 
-export const storage = multer.diskStorage({
-  destination: './public/profile',
-  filename: function(req, file, cb) {
-    cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
-  }
+// Sanitize worker name for filename
+const sanitizeFileName = (name: string): string => {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "_")
+    .replace(/[^a-z0-9_]/g, "");
+};
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadPath);
+  },
+  filename: (req: Request, file, cb) => {
+    const workerName = req.body.name || "worker";
+    const sanitizedName = sanitizeFileName(workerName);
+    const timestamp = Date.now();
+    const extension = path.extname(file.originalname);
+
+    cb(null, `${sanitizedName}_${timestamp}${extension}`);
+  },
+});
+
+export const uploadFiles = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (req, file, cb) => {
+    const documentTypes = [
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ];
+
+    const imageTypes = ["image/jpeg", "image/png", "image/jpg"];
+
+    // Accept resume documents and optional profile images
+    if (
+      (file.fieldname === "resume" && documentTypes.includes(file.mimetype)) ||
+      (file.fieldname === "photo" && imageTypes.includes(file.mimetype))
+    ) {
+      cb(null, true);
+    } else {
+      cb(new Error("Invalid file type"));
+    }
+  },
 });
 
 
-
-// Add file type validation
-export const profile = multer({
-  storage: storage,
-  limits: { fileSize: 1000000 },
-  fileFilter: function(req, file, cb) {
-    checkFileType(file, cb);
-  }
-}).single('avatar');
+const permitUploadPath = path.join(process.cwd(), "uploads/permits");
+fs.mkdirSync(permitUploadPath, { recursive: true });
 
 
+const permitStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    cb(null, permitUploadPath);
+  },
+  filename: (req: Request, file, cb) => {
+    const companyName = req.body.company || "employer";
+    const sanitizedName = sanitizeFileName(companyName);
+    const timestamp = Date.now();
+    const extension = path.extname(file.originalname);
 
-// Add file type validation
-export const resume = multer({
-  storage: storage,
-  limits: { fileSize: 1000000 }
-}).single('resume');
-
-
-
-
-export const uploadResume = async (req: any, res: any, file: any) => {
-  resume(req, res, (err) => {
-    if (err) { console.error(err); return res.status(500).json({ error: err }); }
-    if (!file) return res.status(400).json({ error: 'Please send file' });
-
-    console.log(file);
-    res.send('File uploaded!');
-  });
-}
+    cb(null, `${sanitizedName}_${timestamp}${extension}`);
+  },
+});
 
 
-export const profileResume = async (req: any, res: any, file: any) => {
-  profile(req, res, (err) => {
-    if (err) { console.error(err); return res.status(500).json({ error: err }); }
-    if (!file) return res.status(400).json({ error: 'Please send file' });
+export const uploadEmployerPermit = multer({
+  storage: permitStorage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // same limit
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = [
+      "application/pdf",
+      "image/jpeg",
+      "image/png",
+      "image/jpg",
+    ];
 
-    console.log(file);
-    res.send('File uploaded!');
-  });
-}
-
-
-
-
-
-// Check file type
-export const checkFileType = (file: any, cb: any) => {
-  const filetypes = /jpeg|jpg|png|gif/;
-  const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-  const mimetype = filetypes.test(file.mimetype);
-
-  if (mimetype && extname) {
-    return cb(null, true);
-  } else {
-    cb('Error: Images only! (jpeg, jpg, png, gif)');
-  }
-}
+    if (file.fieldname === "permit" && allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Invalid file type"));
+    }
+  },
+});

@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { ApplicationSchema, CompanySchema, JobOverviewSchema, JobSchema, LocationSchema, TagSchema, employerIdSchema, ViewProfile, WorkerIDJob, JobIDJob, ApplicationStatusUpdate, OnlyAccepted, UpdateApplication, InterviewDate, CompanySchemaID, IsAppliedS, WorkerID, TimeLineStatus, UpdateWorkerSchema, UpdateEmployerSchema, EmployerProfileS, RatingSchema, PostContacts } from "../validator/protected";
+import { ApplicationSchema, CompanySchema, JobOverviewSchema, EmployerIdSchema, JobSchema, LocationSchema, TagSchema, employerIdSchema, ViewProfile, WorkerIDJob, JobIDJob, ApplicationStatusUpdate, OnlyAccepted, UpdateApplication, InterviewDate, CompanySchemaID, IsAppliedS, WorkerID, TimeLineStatus, UpdateWorkerSchema, UpdateEmployerSchema, EmployerProfileS, RatingSchema, PostContacts, EmployerSchemaid, SkillID } from "../validator/protected";
 import Job from "../model/Job";
 import { filterXSS } from "xss";
 import Application from "../model/Application";
@@ -7,7 +7,6 @@ import { UserSchema } from "../validator/authentication";
 import { Types } from "mongoose";
 import { instanceErrors, mainError } from "../errors/showErrors";
 import Tag from "../model/Tag";
-import Company from "../model/Company";
 import { success } from "zod";
 import Worker from "../model/Worker";
 import Location from "../model/Location";
@@ -39,61 +38,74 @@ export const IsUserLogged = async (req: Request, res: Response) => {
 
 // Create New Application:
 export const newApplication = async (req: Request, res: Response) => {
-  req.body.worker = 
-    req.user.id
+  req.body.worker = req.user.id;
 
-  const validatedData = ApplicationSchema.safeParse(req.body)
-  const validatedStatus = OnlyAccepted.safeParse({ status: "ACCEPTED" })
+  const validatedData = ApplicationSchema.safeParse(req.body);
 
-  if (validatedData.error) { const errors = validatedData.error.issues; return res.status(400).json({ success: false, message: errors[0].message }) }
-  if (validatedStatus.error) { const errors = validatedStatus.error.issues; return res.status(400).json({ success: false, message: errors[0].message })}
-  
-  const { job, worker } = validatedData.data
-  const { status } = validatedStatus.data
+  if (!validatedData.success) {
+    const errors = validatedData.error.issues;
+    return res.status(400).json({
+      success: false,
+      message: errors[0].message,
+    });
+  }
+
+  const { job, worker, location } = validatedData.data;
 
   try {
-    const JobAccepted = await Job.findOne({ _id: job, status })
-    if (!JobAccepted) return res.status(400).json({ success: false, message: "Job does not exist / is not yet accepted" })
+    const jobData = await Job.findById(job);
 
-    const Applied = await Application.findOne({ job, worker })
-    if (Applied) return res.status(400).json({ success: false, message: "Application already exists" })
+    if (!jobData) {
+      return res.status(400).json({
+        success: false,
+        message: "Job does not exist",
+      });
+    }
 
-    const newApplication = new Application({ job, worker })
-    await newApplication.save()
+    if (jobData.status !== "ACCEPTED") {
+      return res.status(400).json({
+        success: false,
+        message: "Job is not available",
+      });
+    }
+
+    if (jobData.positions < 1) {
+      return res.status(400).json({
+        success: false,
+        message: "Job not available",
+      });
+    }
+
+    const Applied = await Application.findOne({ job, worker });
+
+    if (Applied) {
+      return res.status(400).json({
+        success: false,
+        message: "Application already exists",
+      });
+    }
+
+    const newApplication = new Application({ job, worker, location });
+    await newApplication.save();
 
     return res.status(200).json({
       success: true,
-      application: newApplication
-    })
+      application: newApplication,
+    });
   } catch (error: unknown) {
-    instanceErrors(
-      error,
-      res
-    )
+    instanceErrors(error, res);
   }
-}
-
-
-
-
-
-
-
-
-
-
+};
 
 
 
 // Create new Job:
 export const createJob = async (req: Request, res: Response) => {
-  req.body.posted = req.user.id
+  req.body.posted 
+    = req.user.id
 
   const validatedUser = employerIdSchema.safeParse({ id: req.body.posted, role: req.user.role })
-  if (validatedUser.error) {
-    const error = validatedUser.error.issues
-        return res.status(400).json({ success: false, message: error[0].message })
-  }
+  if (validatedUser.error) { const error = validatedUser.error.issues; return res.status(400).json({ success: false, message: error[0].message }) }
 
   const { id, role } = validatedUser.data
 
@@ -106,35 +118,27 @@ export const createJob = async (req: Request, res: Response) => {
   req.body.company = req.user.company
 
   const validatedJobData = JobSchema.safeParse(req.body)
-  if (validatedJobData.error) {
-    const error = validatedJobData.error.issues
-        return res.status(400).json({ success: false, message: error[0].message })
-  }
+  if (validatedJobData.error) { const error = validatedJobData.error.issues; return res.status(400).json({ success: false, message: error[0].message }) }
 
   const payload = validatedJobData.data
 
-  // Sanitize XSS: Link - https://medium.com/@ferrosful/nodejs-security-unleashed-exploring-xss-attack-8d3a61a01a09:
+  // Sanitize XSS: Link - https://medium.com/@ferrosful/nodejs-security-unleashed-exploring-xss-attack-8d3a61a01a09:   // Will log `**Hello,world!**` - console.log(`text: ${html.replace(/\\s/g, '')}`); - Commented for the source
   payload.title = filterXSS(payload.title, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
   payload.description = filterXSS(payload.description, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
   payload.schedule = filterXSS(payload.schedule, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
   payload.salary = filterXSS(payload.salary, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
-  // Will log `**Hello,world!**`
-  // console.log(`text: ${html.replace(/\\s/g, '')}`);
-  // Commented for the source
+  payload.category = filterXSS(payload.category, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
 
-  for (let i = 0; i < payload.tags.length; i++) {
-    payload.tags[i] = filterXSS(payload.tags[i], { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
-  }
 
-  for (let i = 0; i < payload.requirements.length; i++) {
-    payload.requirements[i] = filterXSS(payload.requirements[i], { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
-  }
-
+  for (let i = 0; i < payload.tags.length; i++) { payload.tags[i] = filterXSS(payload.tags[i], { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true }) }
+  for (let i = 0; i < payload.requirements.length; i++) { payload.requirements[i] = filterXSS(payload.requirements[i], { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true }) }
   for (let i = 0; i < payload.benefits.length; i++) {
     payload.benefits[i] = filterXSS(payload.benefits[i], { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
   }
 
   try {
+    if (!payload.tags.length) return res.status(400).json({ success: false, message: "Tags should not be empty" })
+      
     const newJob = new Job(payload)
     await newJob.save()
     
@@ -151,6 +155,30 @@ export const createJob = async (req: Request, res: Response) => {
 }
 
 
+
+
+
+// Get Industries:
+export const GetIndustries = async (req: Request, res: Response) => {
+  try {
+    const industries = await Industry.find().sort({ createdAt: -1 });
+
+    if (!industries.length) {
+      return res.status(200).json({
+        success: true,
+        message: "No industries found",
+        Industries: [],
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      Industries: industries,
+    });
+  } catch (error) {
+    mainError(error, res)
+  }
+};
 
 
 // View Jobs:
@@ -177,13 +205,11 @@ export const viewJobs = async (req: Request, res: Response) => {
 
       const isApplied = await Application.findOne({ worker, job })
       if (!isApplied) {
-        jobArray.push({
-          info: jobs[jobIndex],
+        jobArray.push({ info: jobs[jobIndex],
           IsApplied: false
         })
       } else {
-        jobArray.push({
-          info: jobs[jobIndex],
+        jobArray.push({ info: jobs[jobIndex],
           IsApplied: true
         })
       }
@@ -200,8 +226,6 @@ export const viewJobs = async (req: Request, res: Response) => {
     )
   }
 }
-
-
 
 
 
@@ -222,6 +246,7 @@ export const Locations = async (req: Request, res: Response) => {
     )
   }
 }
+
 
 
 // Post a Contact:
@@ -251,10 +276,11 @@ export const PostContact = async (req: Request, res: Response) => {
 }
 
 
+
 // Open Positions:
 export const OpenPositionsTotalApplications = async (req: Request, res: Response) => {
   const validatedData = EmployerProfileS.safeParse({ _id: req.user.id })
-  const validatedComp = CompanySchemaID.safeParse({ _id: req.user.company })
+  const validatedComp = CompanySchemaID.safeParse({ _id: req.user.company }) // ??
   if (!validatedData.success) { const errors = validatedData.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message })}
 
   const { _id } = validatedData.data
@@ -275,6 +301,7 @@ export const OpenPositionsTotalApplications = async (req: Request, res: Response
     )
   }
 }
+
 
 
 // Is Applied Controller:
@@ -317,17 +344,22 @@ export const ViewProfileController = async (req: Request, res: Response) => {
     const locations = await Location.find().sort({ createdAt: -1 })
     if (!WorkerProf) return res.status(404).json({ success: false, message: "Worker doesn't exist"})
 
+    const validatedS = SkillID.safeParse({ skill: String(WorkerProf.skillCategory) })
+    if (!validatedS.success) { const errors = validatedS.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message })}
+
     const applications = await Application.find({ worker: _id }).sort({ createdAt: -1 })
     const skills = await Skill.find().sort({ createdAt: -1 })
     const interviews = await Application.find({ worker: _id, status, timeline })
 
+    const { skill } = validatedS.data
+    const SkillInformation = await Skill.findOne({ _id: skill })
+
+    if (!SkillInformation) return res.status(404).json({ success: false, message: "Skill doesn't exist" })
+
     return res.status(200).json({
-      success: true,
-      WorkerProf,
-      Applications: applications.length,
-      Interviews: interviews.length,
-      Locations: locations,
-      Skills: skills
+      success: true, WorkerProf, Applications: applications.length, Interviews: interviews.length, Locations: locations,
+      Skills: skills,
+      SkillInformation: SkillInformation.title
     })
   } catch (error) {
     mainError(
@@ -336,6 +368,7 @@ export const ViewProfileController = async (req: Request, res: Response) => {
     )
   }
 }
+
 
 
 // Update Worker:
@@ -381,41 +414,52 @@ export const UpdateWorker = async (req: Request, res: Response) => {
 }
 
 
-// Employers:
+
 // Update Employer:
 export const UpdateEmployer = async (req: Request, res: Response) => {
-  const validatedEmployer = UpdateEmployerSchema.safeParse({ ...req.body, _id: req.user.id })
-  if (!validatedEmployer.success) { const errors = validatedEmployer.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message })}
+  const validatedEmployer = UpdateEmployerSchema.safeParse({
+    ...req.body,
+    _id: req.user.id
+  });
 
-  const { _id, company, email, phone, industry } = validatedEmployer.data
+  if (!validatedEmployer.success) {
+    const errors = validatedEmployer.error._zod.def;
+    return res.status(400).json({ success: false, message: errors[0].message });
+  }
+
+  const { _id, company, email, phone, industry } = validatedEmployer.data;
 
   try {
-    const EmployerInformation = await Employer.findOne({ _id })
-    if (!EmployerInformation) return res.status(404).json({ success: false, message: "Employer Not Found" })
+    const EmployerInformation = await Employer.findById(_id);
+    if (!EmployerInformation) {
+      return res.status(404).json({
+        success: false,
+        message: "Employer Not Found"
+      });
+    }
 
-    EmployerInformation.company = company || EmployerInformation.company
-    EmployerInformation.email = email || EmployerInformation.email
+    if (company) EmployerInformation.company = company;
+    if (email) EmployerInformation.email = email;
+    if (phone) EmployerInformation.phone = phone;
 
-    EmployerInformation.phone = phone || EmployerInformation.phone
-    EmployerInformation.industry = industry || EmployerInformation.industry
+    if (industry) {
+      EmployerInformation.industry = new Types.ObjectId(industry);
+    }
 
-    await EmployerInformation.save()
-    
+    await EmployerInformation.save();
+
     return res.status(200).json({
       success: true,
       message: "Employer has successfully been updated!"
-    })
+    });
+
   } catch (error) {
-    mainError(
-      error,
-      res
-    )
+    mainError(error, res);
   }
-}
+};
 
 
 
-// Employers:
 // View Employer Profile:
 export const EmployerProfileController = async (req: Request, res: Response) => {
   const validatedEmployer = EmployerProfileS.safeParse({ _id: req.user.id })
@@ -442,14 +486,11 @@ export const EmployerProfileController = async (req: Request, res: Response) => 
 }
 
 
-// Employers:
+
 // View Posted Jobs:
 export const viewPostedJobs = async (req: Request, res: Response) => {
   const validatedUserId = UserSchema.safeParse({ user: req.user.id })
-  if (validatedUserId.error) {
-    const error = validatedUserId.error.issues
-        return res.status(400).json({ success: false, message: error[0].message })
-  }
+  if (validatedUserId.error) { const error = validatedUserId.error.issues; return res.status(400).json({ success: false, message: error[0].message }) }
 
   const { user } = validatedUserId.data
 
@@ -462,12 +503,7 @@ export const viewPostedJobs = async (req: Request, res: Response) => {
       jobs
     })
   } catch (error) {
-    console.error(error)
-
-    return res.status(500).json({
-      success: false,
-      message: "Internal Server Error"
-    })
+    instanceErrors(error, res)
   }
 }
 
@@ -503,10 +539,7 @@ export const ReviewUpload = async (req: Request, res: Response) => {
 // Display Job Overview:
 export const viewJobOverview = async (req: Request, res: Response) => {
   const validatedJob = JobOverviewSchema.safeParse({ job: new Types.ObjectId(req.params.job) })
-  if (validatedJob.error) {
-    const errors = validatedJob.error.issues
-        return res.status(400).json({ success: false, message: errors[0].message })
-  }
+  if (validatedJob.error) { const errors = validatedJob.error.issues; return res.status(400).json({ success: false, message: errors[0].message }) }
 
   const { job } = validatedJob.data
 
@@ -519,53 +552,9 @@ export const viewJobOverview = async (req: Request, res: Response) => {
       job_Overview
     })
   } catch (error) {
-    console.error(error)
-
-    return res.status(500).json({
-      success: false,
-      message: "Internal Server Error"
-    })
+    instanceErrors(error, res)
   }
 }
-
-
-
-
-
-// Add Company:
-export const addCompany = async (req: Request, res: Response) => {
-  const validatedData = CompanySchema.safeParse(req.body);
-  if (validatedData.error) {
-    const errors = validatedData.error.issues;
-    return res.status(400).json({ success: false, message: errors[0].message })
-  }
-
-  const { title } = validatedData.data
-
-  // Sanitize XSS Title:
-  const sanitizedTitle = filterXSS(title, { 
-    whiteList: {},
-        stripIgnoreTag: true,
-            stripIgnoreTagBody: true
-  })
-
-  try {
-    const newCompany = new Company({ title: sanitizedTitle })
-    await newCompany.save()
-
-    return res.status(201).json({
-      success: true,
-      message: "Company successfully created!"
-    })
-  } catch (error) {
-
-    instanceErrors(
-      error,
-      res
-    )
-  }
-}
-
 
 
 
@@ -573,16 +562,12 @@ export const addCompany = async (req: Request, res: Response) => {
 // Location:
 export const AddLocation = async (req: Request, res: Response) => {
   const validatedData = LocationSchema.safeParse(req.body)
-  if (validatedData.error) {
-    const errors = validatedData.error.issues
-    return res.status(400).json({ success: false, message: errors[0].message })
-  }
+  if (validatedData.error) { const errors = validatedData.error.issues; return res.status(400).json({ success: false, message: errors[0].message }) }
 
   const { name } = validatedData.data
 
   // Sanitize XSS Title:
-  const sanitizedName = filterXSS(name, { 
-    whiteList: {},
+  const sanitizedName = filterXSS(name, { whiteList: {},
         stripIgnoreTag: true,
             stripIgnoreTagBody: true
   })
@@ -603,28 +588,20 @@ export const AddLocation = async (req: Request, res: Response) => {
 
 
 
-
-
-
 // Add Skill:
 export const AddTag = async (req: Request, res: Response) => {
   const validatedData = TagSchema.safeParse(req.body)
-  if (validatedData.error) {
-    const errors = validatedData.error.issues
-    return res.status(400).json({ success: false, message: errors[0].message })
-  }
+  if (validatedData.error) { const errors = validatedData.error.issues; return res.status(400).json({ success: false, message: errors[0].message }) }
 
   const { title } = validatedData.data
 
   // Sanitize XSS Title:
-  const sanitizedTitle = filterXSS(title, { 
-    whiteList: {},
+  const sanitizedTitle = filterXSS(title, { whiteList: {},
         stripIgnoreTag: true,
             stripIgnoreTagBody: true
   })
 
   try {
-    
     const newTag = new Tag({ title: sanitizedTitle })
     await newTag.save()
 
@@ -644,24 +621,37 @@ export const AddTag = async (req: Request, res: Response) => {
 
 
 
-
 // View Job Applications:
 export const viewApplicationsEmployer = async (req: Request, res: Response) => {
+  const userId = req.user.id;
+
   try {
-    const Applications = await Application.find().populate("job").populate("worker").sort({ createdAt: -1 })
-    if (!Applications.length) return res.status(200).json({ success: true, message: "No Applications", Applications })
+    const jobIds = await Job.find({ posted: userId }).distinct("_id");
+
+    const Applications = await Application.find({
+      job: { $in: jobIds.map(id => id.toString()) },
+    })
+    .populate("job")
+    .populate("worker")
+    .populate("location")
+    .sort({ createdAt: -1 });
+
+    if (!Applications.length) {
+      return res.status(200).json({
+        success: true,
+        message: "No Applications",
+        Applications: [],
+      });
+    }
 
     return res.status(200).json({
       success: true,
-      Applications
-    })
+      Applications,
+    });
   } catch (error) {
-    mainError(
-      error,
-      res
-    )
+    mainError(error, res);
   }
-}
+};
 
 
 
@@ -676,7 +666,7 @@ export const viewApplications = async (req: Request, res: Response) => {
   const { worker } = validatedWorker.data
 
   try {
-    const Applications = await Application.find({ worker }).populate("job").sort({ createdAt: -1 })
+    const Applications = await Application.find({ worker }).populate("job").populate("location").sort({ createdAt: -1 })
     if (!Applications.length) return res.status(200).json({ success: true, message: "No Applications", Applications })
 
     return res.status(200).json({
@@ -690,8 +680,6 @@ export const viewApplications = async (req: Request, res: Response) => {
     )
   }
 }
-
-
 
 
 
@@ -723,35 +711,68 @@ export const WithdrawApplication = async (req: Request, res: Response) => {
 
 
 
-
-
 // Accept Application:
 export const UpdateApp = async (req: Request, res: Response) => {
-  const validatedStatus = UpdateApplication.safeParse(req.body)
-  if (!validatedStatus.success) { const errors = validatedStatus.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message })}
+  const validatedStatus = UpdateApplication.safeParse(req.body);
 
-  const { _id, status, timeline } = validatedStatus.data
+  if (!validatedStatus.success) {
+    const errors = validatedStatus.error.issues;
+    return res.status(400).json({
+      success: false,
+      message: errors[0].message,
+    });
+  }
+
+  const { _id, status, timeline } = validatedStatus.data;
 
   try {
-    const application = await Application.findOne({ _id })
-    if (!application) return res.status(404).json({ success: false, message: "Application not found" })
+    const application = await Application.findOne({ _id });
+    if (!application)
+      return res.status(404).json({ success: false, message: "Application not found" });
 
-    application.status = status || application.status
-    application.timeline = timeline || application.timeline
-    await application.save()
+    const job = await Job.findById(application.job);
+    if (!job)
+      return res.status(404).json({ success: false, message: "Job not found" });
+
+    const previousStatus = application.status;
+    const newStatus = status;
+
+    // CASE 1: not accepted → accepted
+    if (previousStatus !== "Accepted" && newStatus === "Accepted") {
+      await Job.updateOne(
+        { _id: job._id, positions: { $gt: 0 } },
+        { $inc: { positions: -1 } }
+      );
+    }
+
+    // CASE 2: accepted → not selected (rollback slot)
+    if (previousStatus === "Accepted" && newStatus === "Not Selected") {
+      await Job.updateOne(
+        { _id: job._id },
+        { $inc: { positions: 1 } }
+      );
+    }
+
+    if (previousStatus === newStatus) {
+      return res.status(200).json({
+        success: true,
+        message: "No changes applied",
+      });
+    }
+
+    application.status = newStatus;
+    application.timeline = timeline;
+
+    await application.save();
 
     return res.status(200).json({
       success: true,
-      message: "Application successfully updated!"
-    })
+      message: "Application successfully updated!",
+    });
   } catch (error) {
-    mainError(
-      error,
-      res
-    )
-  } 
-}
-
+    mainError(error, res);
+  }
+};
 
 
 
@@ -791,31 +812,35 @@ export const UpdateInterview = async (req: Request, res: Response) => {
 
 
 
-
 // View Company Details:
 export const CompanyDetails = async (req: Request, res: Response) => {
   const validatedCompany = CompanySchemaID.safeParse({ _id: req.user.company })
+  const validatedEmployer = EmployerSchemaid.safeParse({ employer: req.user.id })
+  const validatedAccepted = OnlyAccepted.safeParse({ status: "ACCEPTED" })
+
   if (!validatedCompany.success) { const errors = validatedCompany.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message })}
+  if (!validatedEmployer.success) { const errors = validatedEmployer.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message })}
+  if (!validatedAccepted.success) { const errors = validatedAccepted.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message })}
 
   const { _id } = validatedCompany.data
+  const { employer } = validatedEmployer.data
+  const { status } = validatedAccepted.data
+
   let TotalApplications = []
 
   try {
-    const company = await Company.findOne({ _id }).populate("industry").populate("location").populate("companyOwner")
-    const jobs = await Job.find({ company: _id }).populate("posted").populate("location").sort({ createdAt: -1 })
+    const EmployerInformation = await Employer.findOne({ _id: employer }).populate("industry").populate("location")
+    if (!EmployerInformation) return res.status(404).json({ success: false, message: "Employer not available" })
+
+    const jobs = await Job.find({ company: _id, status }).populate("posted").populate("location").sort({ createdAt: -1 })
 
     for (let compIndex = 0; compIndex < jobs.length; compIndex++) {
-      const app = await Application.findOne({ job: String(jobs[compIndex]._id) }).populate("worker").populate("job")
+      const app = await Application.findOne({ job: String(jobs[compIndex]._id) }).populate("worker").populate("job").populate("location")
       if (app) TotalApplications.push(app)
     }
 
-    if (!company) return res.status(404).json({ success: false, message: "Company Not Found" })
-
     return res.status(200).json({
-      success: true,
-      company,
-      Jobs: jobs.length,
-      JobsInfo: jobs,
+      success: true, EmployerInformation, Jobs: jobs.length, JobsInfo: jobs,
       TotalApplications: TotalApplications.length,
       TotalApplicationsArray: TotalApplications
     })
@@ -826,6 +851,7 @@ export const CompanyDetails = async (req: Request, res: Response) => {
     )
   }
 }
+
 
 
 // View Workers:
@@ -851,16 +877,9 @@ export const ViewWorkers = async (req: Request, res: Response) => {
 // Log Out Controller:
 export const LogOut = async (req: Request, res: Response) => {
   try {
-    return res
-              .clearCookie("token")
-              .status(200).json({
-                success: true,
-                message: "Successfully Logged Out!"
-              })
+    return res.clearCookie("token").status(200).json({ success: true, message: "Successfully Logged Out!" })
   } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: "Internal Server Error"
+    return res.status(500).json({ success: false, message: "Internal Server Error"
     })
   }
 }

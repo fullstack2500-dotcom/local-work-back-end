@@ -4,8 +4,7 @@ import authRouter from "./route/authentication"
 import protectedRoutes from "./route/protected"
 import adminRoutes from "./route/admin"
 import helmet from "helmet";
-import cors from "cors"
-import slowDown from "express-slow-down";
+import cors from "cors";
 import rateLimit from "express-rate-limit";
 import cookieParser from "cookie-parser"
 
@@ -42,15 +41,8 @@ const rateLimiter = rateLimit({
   message: "Too many requests, please try again after 2 minutes"
 })
 
-// Slow Down:
-const speedLimit = slowDown({
-  windowMs: 15 * 60 * 1000,
-  delayAfter: 60,
-  delayMs: (hits) => hits * 60
-})
-
 // Allow app to use rate limiter and speed limiter:
-app.use("/api", rateLimiter, speedLimit)
+app.use("/api", rateLimiter)
 
 // Middlewares for authentication and protected and admin:
 app.use("/api/auth", authRouter)

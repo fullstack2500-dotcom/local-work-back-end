@@ -12,7 +12,11 @@ import {
   AppStatusSchema,
   UpdateSchema,
   AddNewCompanySchema,
-  AddNewIndustryValidation
+  AddNewIndustryValidation,
+  DashboardSchema,
+  ProfileSchema,
+  UpdateWorkersEmployers,
+  SkillsInformation
 } from "../validator/admin";
 import { instanceErrors, mainError } from "../errors/showErrors";
 import Employer from "../model/Employer";
@@ -20,69 +24,433 @@ import Job from "../model/Job";
 import Skill from "../model/Skill";
 import Application from "../model/Application";
 import { SortSchema } from "../validator/protected";
-import Company from "../model/Company";
 import { filterXSS } from "xss";
 import Industry from "../model/Industry";
-
+import { Types } from "mongoose";
 
 
 // Dashboard:
 export const Dashboard = async (req: Request, res: Response) => {
-  const validatedPending = PendingSchema.safeParse({ status: "pending" })
-  const validatedAccepted = AcceptedSchema.safeParse({ status: "accepted" })
-  const validatedDeclined = DeclinedSchema.safeParse({ status: "declined" })
-
-  const validatedVerifiedWorkers = VerifiedWorkersSchema.safeParse({ status: "verified "})
-  const validatedPendingWorkers = PendingVerificationWorkersSchema.safeParse({ status: "pending" })
-  const validatedDeclinedWorkers = DeclinedWorkersSchema.safeParse({ status: "declined" })
-
-  const validatedApplicationStatus = AppStatusSchema.safeParse({
-    status_PR: "Pending Review",
-    status_IS: "Interview Scheduled",
-    status_AC: "Accepted",
-    status_NS: "Not Selected"
+  const validatedDashboard = DashboardSchema.safeParse({
+    active: "active",
+    pending: "pending",
+    not_active: "not_active"
   })
 
+  if (!validatedDashboard.success) { const errors = validatedDashboard.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message })}
+
   try {
-    const totalJobs = await Job.find()
-    const pendingJobs = await Job.find({ status: validatedPending.data?.status })
-    const acceptedJobs = await Job.find({ status: validatedAccepted.data?.status })
-    const declinedJobs = await Job.find({ status: validatedDeclined.data?.status })
+    const JOBS = await Job.find({ status: { $ne: "DELETED" } }).populate("posted").populate("location").sort({ createdAt: -1 }); const WORKERS = await Worker.find().sort({ createdAt: -1 })
 
-    const totalWorkers = await Worker.find()
-    const verifiedWorkers = await Worker.find({ status: validatedVerifiedWorkers.data?.status })
-    const pendingWorkers = await Worker.find({ status: validatedPendingWorkers.data?.status })
-    const declinedWorkers = await Worker.find({ status: validatedDeclinedWorkers.data?.status })
+    return res.status(200).json({
+      success: true, JOBS, WORKERS
+    })
+  } catch (error) {
+    mainError(error, res)
+  }
+}
 
-    const totalApplications = await Application.find()
-    const pendingApplication = await Application.find({ status: validatedApplicationStatus.data?.status_PR })
-    const interviewScheduledApplication = await Application.find({ status: validatedApplicationStatus.data?.status_IS })
-    const acceptedApplication = await Application.find({ status: validatedApplicationStatus.data?.status_AC })
-    const notSelectedApplication = await Application.find({ status: validatedApplicationStatus.data?.status_NS })
+// Profiles:
+export const Profiles = async (req: Request, res: Response) => {
+  const validatedRole = ProfileSchema.safeParse({ role: req.params.role })
+  if (!validatedRole.success) { const errors = validatedRole.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message })}
+
+  const { role } = validatedRole.data
+  try {
+    if (role !== "all") {
+      let Users
+      if (role === "worker") {
+        Users = await Worker.find().sort({ createdAt: -1 })
+      } else {
+        Users = await Employer.find().sort({ createdAt: -1 })
+      }
+
+      return res.status(200).json({
+        success: true,
+        Users
+      })
+    } else {
+      let Users = []
+      const Workers = await Worker.find().sort({ createdAt: -1 })
+      const Employers = await Employer.find().sort({ createdAt: -1 })
+
+      for (let worker = 0; worker < Workers.length; worker++) {
+        if (Workers[worker].status !== "deleted") {
+          Users.push(Workers[worker])
+        }
+      }
+      
+      for (let employer = 0; employer < Employers.length; employer++) {
+        if (Employers[employer].status !== "deleted") {
+          Users.push(Employers[employer])
+        }
+      }
+
+      return res.status(200).json({
+        success: true,
+        Users
+      })
+    }
+  } catch (error) {
+    mainError(error, res)
+  }
+}
+
+// Update Worker & Employer Status Information:
+export const UpdateWorkersEmployersInformation = async (req: Request, res: Response) => {
+  const validatedStatus = UpdateWorkersEmployers.safeParse(req.body)
+  if (!validatedStatus.success) { const errors = validatedStatus.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message })}
+
+  const { _id, status, role } = validatedStatus.data
+
+  try {
+    if (role === "employer") {
+      const EmployerUpdate = await Employer.findOne({ _id })
+      if (!EmployerUpdate) return res.status(404).json({ success: false, message: "Employer not found"})
+
+      EmployerUpdate.status = status || EmployerUpdate.status
+      await EmployerUpdate.save()
+    } else {
+      const WorkerUpdate = await Worker.findOne({ _id })
+      if (!WorkerUpdate) return res.status(404).json({ success: false, message: "Worker not found"})
+
+      WorkerUpdate.status = status || WorkerUpdate.status
+      await WorkerUpdate.save()
+    }
 
     return res.status(200).json({
       success: true,
-      jobs: totalJobs.length,
-      pending: pendingJobs.length,
-      accepted: acceptedJobs.length,
-      declined: declinedJobs.length,
-      workers: totalWorkers.length,
-      verified: verifiedWorkers.length,
-      pendingWorkers: pendingWorkers.length,
-      declinedWorkers: declinedWorkers.length,
-      applications: totalApplications.length,
-      pendingApplication: pendingApplication.length,
-      interviewScheduledApplication: interviewScheduledApplication.length,
-      acceptedApplication: acceptedApplication.length,
-      notSelectedApplication: notSelectedApplication.length
+      message: "Updated successfully!"
     })
   } catch (error) {
-    mainError(
+    instanceErrors(
       error,
       res
     )
   }
 }
+
+
+// Delete the worker / employer:
+export const DeleteWorkerEmployer = async (req: Request, res: Response) => {
+  const validatedId = UpdateWorkersEmployers.safeParse(req.body)
+
+  if (!validatedId.success) {
+    return res.status(400).json({
+      success: false,
+      message: validatedId.error._zod.def[0].message,
+    })
+  }
+
+  const { _id, status, role } = validatedId.data
+
+  try {
+    if (role === "employer") {
+      const EmployerUpdate = await Employer.findById(_id)
+
+      if (!EmployerUpdate) {
+        return res.status(404).json({
+          success: false,
+          message: "Employer not found",
+        })
+      }
+
+      EmployerUpdate.status = status || EmployerUpdate.status
+      await EmployerUpdate.save()
+
+      if (status === "deleted") {
+        await Job.updateMany(
+          { posted: new Types.ObjectId(_id) },
+          { $set: { status: "DELETED" } }
+        )
+      }
+    } else {
+      const WorkerUpdate = await Worker.findById(_id)
+
+      if (!WorkerUpdate) {
+        return res.status(404).json({
+          success: false,
+          message: "Worker not found",
+        })
+      }
+
+      WorkerUpdate.status = status || WorkerUpdate.status
+      await WorkerUpdate.save()
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Deleted successfully!",
+    })
+  } catch (error) {
+    mainError(error, res)
+  }
+}
+
+// Reports:
+export const Reports = async (req: Request, res: Response) => {
+  try {
+    const Skills = await Skill.find().sort({ createdAt: -1 }) || [];
+    const Industries = await Industry.find().sort({ createdAt: -1 }) || [];
+
+    const workerGrowth = await Worker.aggregate([
+      {
+        $group: {
+          _id: {
+            year: { $year: "$createdAt" },
+            month: { $month: "$createdAt" },
+          },
+          newWorkers: { $sum: 1 },
+          activeWorkers: {
+            $sum: {
+              $cond: [{ $eq: ["$status", "active"] }, 1, 0],
+            },
+          },
+        },
+      },
+      { $sort: { "_id.year": 1, "_id.month": 1 } },
+      {
+        $project: {
+          _id: 0,
+          month: {
+            $concat: [
+              {
+                $arrayElemAt: [
+                  ["", "Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
+                  "$_id.month",
+                ],
+              },
+              " ",
+              { $toString: "$_id.year" },
+            ],
+          },
+          newWorkers: 1,
+          activeWorkers: 1,
+        },
+      },
+    ]);
+
+    // PAYMENT SUMMARY DATA (this is what your chart needs)
+    const jobsByIndustry = await Job.aggregate([
+      {
+        $match: {
+          category: { $ne: null }
+        }
+      },
+      {
+        $group: {
+          _id: "$category",
+          value: { $sum: 1 }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          name: "$_id",
+          value: 1
+        }
+      },
+      {
+        $sort: { value: -1 }
+      }
+    ]);
+
+    const jobPerformance = await Job.aggregate([
+      {
+        $group: {
+          _id: {
+            year: { $year: "$createdAt" },
+            month: { $month: "$createdAt" },
+          },
+          posted: {
+            $sum: 1,
+          },
+          filled: {
+            $sum: {
+              $cond: [
+                { $lt: [{ $ifNull: ["$positions", 0] }, 1] },
+                1,
+                0,
+              ],
+            },
+          },
+          expired: {
+            $sum: {
+              $cond: [
+                { $lt: [{ $toDate: "$applyBefore" }, "$$NOW"] },
+                1,
+                0,
+              ],
+            },
+          },
+        },
+      },
+      { $sort: { "_id.year": 1, "_id.month": 1 } },
+      {
+        $project: {
+          _id: 0,
+          month: {
+            $arrayElemAt: [
+              [
+                "",
+                "Jan","Feb","Mar","Apr","May","Jun",
+                "Jul","Aug","Sep","Oct","Nov","Dec"
+              ],
+              "$_id.month",
+            ],
+          },
+          posted: 1,
+          filled: 1,
+          expired: 1,
+        },
+      },
+    ]);
+
+  const categoryTable = await Job.aggregate([
+    {
+      $lookup: {
+        from: "workers",
+        localField: "category",
+        foreignField: "industry",
+        as: "workers",
+      },
+    },
+
+    {
+      $lookup: {
+        from: "applications",
+        localField: "_id",
+        foreignField: "job",
+        as: "applications"
+      }
+    },
+
+    {
+      $addFields: {
+        applications: {
+          $cond: [
+            { $isArray: "$applications" },
+            "$applications",
+            []
+          ]
+        }
+      }
+    },
+
+{
+  $group: {
+    _id: "$category",
+
+    totalApplications: {
+      $sum: { $size: "$applications" }
+    },
+
+    acceptedApplications: {
+      $sum: {
+        $size: {
+          $filter: {
+            input: "$applications",
+            as: "a",
+            cond: { $eq: ["$$a.status", "Accepted"] }
+          }
+        }
+      }
+    },
+
+    activeJobs: {
+      $sum: {
+        $cond: [
+          { $gt: [{ $toDate: "$applyBefore" }, "$$NOW"] },
+          1,
+          0
+        ]
+      }
+    },
+
+    totalJobs: { $sum: 1 },
+  }
+},
+
+{
+  $addFields: {
+    workers: {
+      $reduce: {
+        input: "$workers",
+        initialValue: [],
+        in: { $concatArrays: ["$$value", "$$this"] }
+      }
+    }
+  }
+},
+
+{
+  $project: {
+    _id: 0,
+    name: "$_id",
+
+    activeJobs: 1,
+    totalApplications: 1,
+
+    avgApplications: {
+      $round: [
+        {
+          $cond: [
+            { $eq: ["$totalJobs", 0] },
+            0,
+            { $divide: ["$totalApplications", "$totalJobs"] }
+          ]
+        },
+        0
+      ]
+    },
+
+    acceptanceRate: {
+      $round: [
+        {
+          $cond: [
+            { $eq: ["$totalApplications", 0] },
+            0,
+            {
+              $multiply: [
+                { $divide: ["$acceptedApplications", "$totalApplications"] },
+                100
+              ]
+            }
+          ]
+        },
+        0
+      ]
+    },
+
+    acceptedApplications: {
+      $sum: {
+        $size: {
+          $filter: {
+            input: { $ifNull: ["$applications", []] },
+            as: "a",
+            cond: { $eq: ["$$a.status", "Accepted"] }
+          }
+        }
+      }
+    }
+  }
+}
+  ]);
+
+    return res.status(200).json({
+      success: true,
+      jobsByIndustry,
+      industries: Industries,
+      workerGrowth,
+      jobPerformance,
+      categoryTable,
+    });
+
+  } catch (error) {
+    mainError(error, res);
+  }
+};
+
 
 
 // Workers:
@@ -251,20 +619,25 @@ export const Applications = async (req: Request, res: Response) => {
 // Display Exported Jobs:
 export const ViewJobsNew = async (req: Request, res: Response) => {
   try {
-    const jobs = await Job.find().sort({ createdAt: -1 })
-    if (jobs.length === 0) return res.status(200).json({ success: true, jobs, message: "No jobs available" })
+    const jobs = await Job.find({
+      status: { $ne: "DELETED" }
+    }).sort({ createdAt: -1 });
+
+    if (jobs.length === 0)
+      return res.status(200).json({
+        success: true,
+        jobs,
+        message: "No jobs available"
+      });
 
     return res.status(200).json({
       success: true,
       jobs
-    })
+    });
   } catch (error) {
-    mainError(
-      error,
-      res
-    )
+    mainError(error, res);
   }
-}
+};
 
 
 
@@ -313,6 +686,7 @@ export const UpdateJobStatus = async (req: Request, res: Response) => {
 
     return res.status(200).json({
       success: true,
+      message: "You have successfully updated job status!",
       NewStatus
     })
   } catch (error) {
@@ -342,35 +716,6 @@ export const WorkersEmployers = async (req: Request, res: Response) => {
     })
   } catch (error) {
     mainError(
-      error,
-      res
-    )
-  }
-}
-
-
-
-
-// Add A New Company:
-export const AddANewCompany = async (req: Request, res: Response) => {
-  const validatedData = AddNewCompanySchema.safeParse(req.body)
-  if (!validatedData.success) { const errors = validatedData.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message })}
-
-  const { title, industry, location, description, noOfEmployees, openPositions, website, totalApplications, companyOwner } = validatedData.data
-
-  const sanitizedTitle = filterXSS(title, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
-  const sanitizedDescription = filterXSS(description, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
-
-  try {
-    const NewCompany = new Company({ title: sanitizedTitle, industry, location, description: sanitizedDescription, noOfEmployees, openPositions, website, totalApplications, companyOwner })
-    await NewCompany.save()
-
-    return res.status(201).json({
-      success: true,
-      message: "Added a New Company"
-    })
-  } catch (error: unknown) {
-    instanceErrors(
       error,
       res
     )

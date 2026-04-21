@@ -1,11 +1,17 @@
-import { Document, Schema, model } from "mongoose"
+import { Document, Schema, Types, model } from "mongoose"
 
 export interface IEmployer extends Document {
   company: string,
+  logo: string,
+  location: string,
+  description: string,
+  noOfEmployees: string,
+  website: string,
+  owner: string,
   email: string,
   password: string,
   phone: string,
-  industry: string,
+  industry: Types.ObjectId,
   profile: string,
   permit: string,
   status: string,
@@ -17,13 +23,19 @@ const EmployerSchema: Schema = new Schema({
 // Posted by JohnnyHK, modified by community. See post 'Timeline' for change history
 // Retrieved 2026-02-27, License - CC BY-SA 3.0
 
-  company: { type: Schema.Types.ObjectId, ref: 'Company', required: [true, "Company is required"] },
+  company: { type: String, required: [true, "Company is required"] },
+  logo: { type: String, default: "default.png" },
+  location: { type: String, default: "No Location" },
+  description: { type: String, default: "No Description" },
+  noOfEmployees: { type: Number, default: 0 },
+  website: { type: String, default: "N/A" },
+  owner: { type: String, default: "N/A" },
   email: { type: String, required: [true, "Email is required"], unique: [true, "Email is already in use"] },
   password: { type: String, required: [true, "Password is required"], select: false },
   phone: { type: String, required: [true, "Phone is required"] },
-  industry: { type: Schema.Types.ObjectId, required: [true, "Industry is required"] },
+  industry: { type: Schema.Types.ObjectId, ref: 'Industry', required: [true, "Industry is required"] },
   profile: { type: String, default: "default.jpg" },
-  permit: { type: String },
+  permit: { type: String, default: "" },
   status: { type: String, default: "pending" },
   role: { type: String, enum: ["employer"], default: "employer" }
 }, { timestamps: true })
