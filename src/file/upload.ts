@@ -3,6 +3,9 @@ import path from "path";
 import fs from "fs";
 import { Request } from "express";
 
+const profileUploadPath = path.join(process.cwd(), "uploads/profile");
+fs.mkdirSync(profileUploadPath, { recursive: true });
+
 // Ensure the upload directory exists
 const uploadPath = path.join(process.cwd(), "uploads/resumes");
 fs.mkdirSync(uploadPath, { recursive: true });
@@ -92,3 +95,43 @@ export const uploadEmployerPermit = multer({
     }
   },
 });
+
+
+
+
+
+
+
+
+
+
+
+
+const profileStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    cb(null, profileUploadPath);
+  },
+  filename: (req: Request, file, cb) => {
+    const workerName = req.body.name || "worker";
+    const sanitizedName = sanitizeFileName(workerName);
+    const timestamp = Date.now();
+    const extension = path.extname(file.originalname);
+
+    cb(null, `${sanitizedName}_profile_${timestamp}${extension}`);
+  },
+});
+
+export const uploadProfilePhoto = multer({
+  storage: profileStorage,
+  limits: { fileSize: 2 * 1024 * 1024 }, // optional smaller limit for avatars
+  fileFilter: (req, file, cb) => {
+    const imageTypes = ["image/jpeg", "image/png", "image/jpg"];
+
+    if (file.fieldname === "photo" && imageTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Invalid file type"));
+    }
+  },
+});
+

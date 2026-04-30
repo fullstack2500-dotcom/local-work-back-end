@@ -27,6 +27,7 @@ import { SortSchema } from "../validator/protected";
 import { filterXSS } from "xss";
 import Industry from "../model/Industry";
 import { Types } from "mongoose";
+import Company from "../model/Company";
 
 
 // Dashboard:

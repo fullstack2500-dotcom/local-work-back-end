@@ -2,6 +2,7 @@ import { Router } from "express";
 import { WorkerRegister, displayFile, AdminRegister, AdminLogin, EmployerRegister, EmployerLogin, WorkerLogin, FindJobs, ViewSkills, DropdownComp, Workers, Reviews } from "../controller/authentication";
 import rateLimit from "express-rate-limit";
 import { uploadEmployerPermit, uploadFiles } from "../file/upload";
+import { createCompany } from "../controller/authentication";
 
 const router = Router()
 
@@ -10,6 +11,8 @@ router.get("/display", displayFile)
 router.get("/jobs", FindJobs)
 router.get("/workers", Workers)
 router.get("/rating", Reviews)
+
+router.post("/companies", createCompany);
 
 // DropDown:
 router.get("/ViewSkills", ViewSkills)

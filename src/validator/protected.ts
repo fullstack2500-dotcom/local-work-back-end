@@ -204,21 +204,20 @@ export const TimeLineStatus = z.object({
 export const UpdateWorkerSchema = z.object({
   _id: z.string("_id must be a string"),
   name: z.string("Name must be a string").min(3, "Name must have at least 3 characters").max(50, "Name must not exceed 50 characters").regex(/^[A-Za-z0-9 ]*$/, "Name must only include letters, digits, and spaces"), // https://www.servicenow.com/community/itsm-forum/allow-only-alphanumeric-values-and-special-characters/td-p/712231 // https://www.servicenow.com/community/itsm-forum/allow-only-alphanumeric-values-and-special-characters/td-p/712231
-  email: z.string("Email must be a string").email("Email must be a valid email"),
-  phone: z.string("Phone must be a valid phone number").regex(/^(\+639)\d{9}$/, "Please enter a valid phone number, ex. +639..."),
+  phoneNumber: z.string("Phone must be a valid phone number").regex(/^(\+639)\d{9}$/, "Please enter a valid phone number, ex. +639..."),
   location: z.string("Location must be a string"),
-  title: z.string("Title must be string"),
-  experience: z.string("Experience must be a string").regex(/^[A-Za-z0-9 ]*$/, "Name must only include letters, digits, and spaces"),
-  bio: z.string("About Me must be a string"),
+  jobTitle: z.string("Title must be string"),
+  yearsOfExperience: z.string("Experience must be a string").regex(/^[A-Za-z0-9 ]*$/, "Name must only include letters, digits, and spaces").optional(),
+  about_me: z.string("About Me must be a string"),
   availability: z.enum(["Full-Time", "Part-Time", "Contract", "Flexible"], "Availability must be either Full-Time, Part-Time, Contract, Flexible"),
-  expectedSalary: z.string("Expected Salary must be a string")
+  expected_salary: z.string("Expected Salary must be a string"),
+  skills: z.array(z.string("Skill must be a string"), "Skills must be an array")
 })
 
 // Update Employer:
 export const UpdateEmployerSchema = z.object({
   _id: z.string("_id must be a string"),
   company: z.string("Company must be a string"),
-  email: z.string("Email must be a string").email("Email must be a valid email"),
   phone: z.string("Phone Number must be a string").regex(/^(\+639)\d{9}$/, "Please enter a valid phone number, ex. +639..."),
   industry: z.string("Industry must be a string")
 })
@@ -240,7 +239,6 @@ export const EmployerProfileS = z.object({
 export const RatingSchema = z.object({
   worker: z.string("Worker must be a string"),
   rating: z.int("Rating must be an integer"),
-  skill: z.string("Skill must be a string"),
   description: z.string("Description must be a string")
 })
 

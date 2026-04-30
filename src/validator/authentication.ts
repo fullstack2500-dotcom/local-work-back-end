@@ -24,6 +24,20 @@ export const AdminLoginSchema = z.object({
 
 
 
+export const createCompanySchema = z.object({
+  name: z.string().min(1),
+  industry: z.string().min(1),
+  location: z.string().min(1),
+  description: z.string().optional().default(""),
+  website: z.string().url().optional().or(z.literal("")),
+  owner: z.string().min(1).optional(),
+  employees: z.number().int().min(0).optional().default(0),
+  openPositions: z.number().int().min(0).optional().default(0),
+  photo: z.string().optional().default(""),
+});
+
+
+
 // Register User Schema:
 export const WorkerRegisterSchema = z.object({
   name: z.string("Name must be a string").min(3, "Name must have at least 3 characters").max(35, "Name must have a maximum of 35 characters").regex(/^[A-Za-z0-9 ]*$/, "Name must only include letters, digits, and spaces"), // https://www.servicenow.com/community/itsm-forum/allow-only-alphanumeric-values-and-special-characters/td-p/712231
@@ -57,7 +71,8 @@ export const WorkerRegisterSchema = z.object({
   role: z.enum(["worker", "employer", "admin"], "Role must be either worker, employer, admin").optional(),
   photo: z.string("Photo must be the string URL").optional().nullable(),
   resume: z.string("Resume must be the string URL").optional(),
-  status: z.enum(["pending", "verified"], "Status must be either pending or verified").optional()
+  status: z.enum(["pending", "verified"], "Status must be either pending or verified").optional(),
+  jobTitle: z.string("Job Title must be a string").regex(/^[A-Za-z]+(?: [A-Za-z]+)*$/, "Job Title must onlyOnly letters and single spaces are allowed. Leading, trailing, or multiple consecutive spaces are not permitted.")
 })
 
 

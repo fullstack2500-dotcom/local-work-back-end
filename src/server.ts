@@ -32,6 +32,8 @@ app.use(cors({
 
 app.use(express.json())
 app.use("/public", express.static('public'))
+app.use("/uploads", express.static("uploads"));
+app.use("/uploads/profile", express.static("uploads/profile"));
 
 
 // Rate Limit:

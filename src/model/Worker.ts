@@ -16,6 +16,7 @@ export interface IWorker extends Document {
   phoneNumber: string,
   role: string,
   skills: string[],
+  skill: string,
   skillCategory: string,
   certifications: string[],
   photo: string,

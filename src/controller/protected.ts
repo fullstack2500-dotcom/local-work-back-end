@@ -15,6 +15,8 @@ import Employer from "../model/Employer";
 import Industry from "../model/Industry";
 import Rating from "../model/Rating";
 import Contact from "../model/Contact";
+import axios from "axios";
+import Company from "../model/Company";
 
 // Dashboard:
 export const Dashboard = async (req: Request, res: Response) => {
@@ -85,7 +87,7 @@ export const newApplication = async (req: Request, res: Response) => {
       });
     }
 
-    const newApplication = new Application({ job, worker, location });
+    const newApplication = new Application({ job, worker, location, company: jobData.company });
     await newApplication.save();
 
     return res.status(200).json({
@@ -333,8 +335,8 @@ export const ViewProfileController = async (req: Request, res: Response) => {
   const validatedWorker = WorkerID.safeParse({ _id: req.user.id })
   const validatedStatus = TimeLineStatus.safeParse({ status: "Interview Scheduled", timeline: "Interview" })
 
-  if (!validatedWorker.success) { const errors = validatedWorker.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message })}
-  if (!validatedStatus.success) { const errors = validatedStatus.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message })}
+  if (!validatedWorker.success) { const errors = validatedWorker.error.issues; return res.status(400).json({ success: false, message: errors[0].message })}
+  if (!validatedStatus.success) { const errors = validatedStatus.error.issues; return res.status(400).json({ success: false, message: errors[0].message })}
 
   const { _id } = validatedWorker.data
   const { status, timeline } = validatedStatus.data
@@ -344,22 +346,26 @@ export const ViewProfileController = async (req: Request, res: Response) => {
     const locations = await Location.find().sort({ createdAt: -1 })
     if (!WorkerProf) return res.status(404).json({ success: false, message: "Worker doesn't exist"})
 
-    const validatedS = SkillID.safeParse({ skill: String(WorkerProf.skillCategory) })
-    if (!validatedS.success) { const errors = validatedS.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message })}
+    const validatedS = SkillID.safeParse({ skill: WorkerProf.skill })
+    if (!validatedS.success) { const errors = validatedS.error.issues; return res.status(400).json({ success: false, message: errors[0].message })}
 
     const applications = await Application.find({ worker: _id }).sort({ createdAt: -1 })
     const skills = await Skill.find().sort({ createdAt: -1 })
     const interviews = await Application.find({ worker: _id, status, timeline })
 
     const { skill } = validatedS.data
-    const SkillInformation = await Skill.findOne({ _id: skill })
+    const SkillInformation = await Skill.findOne({ title: skill })
 
     if (!SkillInformation) return res.status(404).json({ success: false, message: "Skill doesn't exist" })
 
     return res.status(200).json({
-      success: true, WorkerProf, Applications: applications.length, Interviews: interviews.length, Locations: locations,
+      success: true,
+      WorkerProf,
+      Applications: applications.length,
+      Interviews: interviews.length,
+      Locations: locations,
       Skills: skills,
-      SkillInformation: SkillInformation.title
+      SkillInformation: WorkerProf.skill
     })
   } catch (error) {
     mainError(
@@ -371,32 +377,114 @@ export const ViewProfileController = async (req: Request, res: Response) => {
 
 
 
+
+const BASE_URL = "https://api.placeslayer.com";
+
+export const getCityProvinceList = async (req: Request, res: Response) => {
+  const API_KEY = process.env.PLACESLAYER_KEY;
+  try {
+    if (!API_KEY) {
+      return res.status(500).json({
+        success: false,
+        message: "Missing PLACESLAYER_KEY"
+      });
+    }
+
+    const country = req.query.country || "PH";
+
+    // 1. Get provinces
+    const provincesRes = await axios.get(
+      `${BASE_URL}/countries/${country}/provinces`,
+      {
+        headers: {
+          "X-API-Key": API_KEY
+        }
+      }
+    );
+
+    console.log(provincesRes.data);
+
+    const provincesRaw = provincesRes.data?.data ?? provincesRes.data;
+    const provinces = Array.isArray(provincesRaw) ? provincesRaw : [];
+
+    if (!provinces.length) {
+      throw new Error("No provinces returned");
+    }
+
+    const results: any[] = [];
+
+    for (const province of provinces) {
+      try {
+        const citiesRes = await axios.get(
+          `${BASE_URL}/countries/${country}/provinces/${province.code}/cities`,
+          {
+            headers: { "X-API-Key": API_KEY }
+          }
+        );
+
+        const citiesRaw = citiesRes.data?.data ?? citiesRes.data;
+        const cities = Array.isArray(citiesRaw) ? citiesRaw : [];
+
+        for (const city of cities) {
+          results.push({
+            city: city.name,
+            province: province.name
+          });
+        }
+      } catch (err) {
+        console.error("Failed province:", province.code);
+      }
+    }
+
+    return res.json({
+      success: true,
+      data: results
+    });
+  } catch (error: unknown) {
+    const err = error as any;
+
+    return res.status(500).json({
+      success: false,
+      message: err?.message || "Unknown error",
+      details: err?.response?.data || null
+    });
+  }
+};
+
+
+
 // Update Worker:
 export const UpdateWorker = async (req: Request, res: Response) => {
   const validatedWorker = UpdateWorkerSchema.safeParse({ ...req.body, _id: req.user.id })
   if (!validatedWorker.success) { const errors = validatedWorker.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message })}
 
-  const { _id, name, email, phone, location, title, experience, bio, availability, expectedSalary } = validatedWorker.data
-  const sanitizedBio = filterXSS(bio, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
+  const { _id, name, phoneNumber, location, jobTitle, yearsOfExperience, about_me, availability, expected_salary, skills } = validatedWorker.data
+  const sanitizedBio = filterXSS(about_me, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
 
   try {
     const WorkerInfo = await Worker.findOne({ _id })
     if (!WorkerInfo) return res.status(404).json({ success: false, message: "Worker Not Found" })
 
     WorkerInfo.name = name || WorkerInfo.name
-    WorkerInfo.email = email || WorkerInfo.email
 
-    WorkerInfo.phoneNumber = phone || WorkerInfo.phoneNumber
+    WorkerInfo.phoneNumber = phoneNumber || WorkerInfo.phoneNumber
     WorkerInfo.location = location || WorkerInfo.location
 
-    WorkerInfo.skillCategory = title || WorkerInfo.skillCategory
-    WorkerInfo.yearsOfExperience = experience || WorkerInfo.yearsOfExperience
+    WorkerInfo.jobTitle = jobTitle || WorkerInfo.jobTitle
+    WorkerInfo.yearsOfExperience = yearsOfExperience || WorkerInfo.yearsOfExperience
 
     WorkerInfo.about_me = sanitizedBio || WorkerInfo.about_me
     WorkerInfo.availability = availability || WorkerInfo.availability
 
     WorkerInfo.expected_salary 
-    = expectedSalary || WorkerInfo.expected_salary
+    = expected_salary || WorkerInfo.expected_salary
+
+    WorkerInfo.skills = skills || WorkerInfo.skills
+
+    // ADD THIS
+    if (req.file) {
+      WorkerInfo.photo = `/uploads/profile/${req.file.filename}`;
+    }
 
     await WorkerInfo.save()
 
@@ -415,6 +503,120 @@ export const UpdateWorker = async (req: Request, res: Response) => {
 
 
 
+export const UploadWorkerProfilePhoto = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const worker = await Worker.findById(userId);
+
+    if (!worker) {
+      return res.status(404).json({
+        success: false,
+        message: "Worker not found",
+      });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "No file uploaded",
+      });
+    }
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+
+    if (!allowedTypes.includes(req.file.mimetype)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid file type",
+      });
+    }
+
+    worker.photo = `/uploads/profile/${req.file.filename}`;
+
+    await worker.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Profile photo uploaded successfully",
+      data: {
+        photo: worker.photo,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Upload failed",
+    });
+  }
+};
+
+
+
+
+export const UploadEmployerProfilePhoto = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const employer = await Employer.findById(userId);
+
+    if (!employer) {
+      return res.status(404).json({
+        success: false,
+        message: "Employer not found",
+      });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "No file uploaded",
+      });
+    }
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+
+    if (!allowedTypes.includes(req.file.mimetype)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid file type",
+      });
+    }
+
+    employer.profile = `/uploads/profile/${req.file.filename}`;
+
+    await employer.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Profile photo uploaded successfully",
+      data: {
+        profile: employer.profile,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Upload failed",
+    });
+  }
+};
+
+
 // Update Employer:
 export const UpdateEmployer = async (req: Request, res: Response) => {
   const validatedEmployer = UpdateEmployerSchema.safeParse({
@@ -427,7 +629,7 @@ export const UpdateEmployer = async (req: Request, res: Response) => {
     return res.status(400).json({ success: false, message: errors[0].message });
   }
 
-  const { _id, company, email, phone, industry } = validatedEmployer.data;
+  const { _id, company, phone, industry } = validatedEmployer.data;
 
   try {
     const EmployerInformation = await Employer.findById(_id);
@@ -439,7 +641,6 @@ export const UpdateEmployer = async (req: Request, res: Response) => {
     }
 
     if (company) EmployerInformation.company = company;
-    if (email) EmployerInformation.email = email;
     if (phone) EmployerInformation.phone = phone;
 
     if (industry) {
@@ -514,11 +715,11 @@ export const ReviewUpload = async (req: Request, res: Response) => {
   const validatedInfo = RatingSchema.safeParse({ ...req.body, worker: req.user.id })
   if (!validatedInfo.success) { const errors = validatedInfo.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message })}
 
-  const { worker, rating, skill, description } = validatedInfo.data
+  const { worker, rating, description } = validatedInfo.data
 
   try {
     const Description = filterXSS(description, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
-    const NewRate = new Rating({ worker, rating, skill, description: Description })
+    const NewRate = new Rating({ worker, rating, description: Description })
 
     await NewRate.save()
 
@@ -815,34 +1016,36 @@ export const UpdateInterview = async (req: Request, res: Response) => {
 // View Company Details:
 export const CompanyDetails = async (req: Request, res: Response) => {
   const validatedCompany = CompanySchemaID.safeParse({ _id: req.user.company })
-  const validatedEmployer = EmployerSchemaid.safeParse({ employer: req.user.id })
-  const validatedAccepted = OnlyAccepted.safeParse({ status: "ACCEPTED" })
 
-  if (!validatedCompany.success) { const errors = validatedCompany.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message })}
-  if (!validatedEmployer.success) { const errors = validatedEmployer.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message })}
-  if (!validatedAccepted.success) { const errors = validatedAccepted.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message })}
+  if (!validatedCompany.success) {
+    const errors = validatedCompany.error.issues;
+    return res.status(400).json({
+      success: false,
+      message: errors[0].message
+    })
+  }
 
   const { _id } = validatedCompany.data
-  const { employer } = validatedEmployer.data
-  const { status } = validatedAccepted.data
-
-  let TotalApplications = []
 
   try {
-    const EmployerInformation = await Employer.findOne({ _id: employer }).populate("industry").populate("location")
-    if (!EmployerInformation) return res.status(404).json({ success: false, message: "Employer not available" })
+    const CompanyInformation = await Company.findOne({ name: _id }).populate("industry")
+    if (!CompanyInformation) return res.status(404).json({ success: false, message: "Company not available" })
 
-    const jobs = await Job.find({ company: _id, status }).populate("posted").populate("location").sort({ createdAt: -1 })
+    const TotalApplications = await Application.find({ company: _id })
+    const Employees = await Application.find({ company: _id, timeline: "Final Decision", status: "Accepted" })
 
-    for (let compIndex = 0; compIndex < jobs.length; compIndex++) {
-      const app = await Application.findOne({ job: String(jobs[compIndex]._id) }).populate("worker").populate("job").populate("location")
-      if (app) TotalApplications.push(app)
-    }
+    const result = await Job.aggregate([
+      { $match: { company: _id } },
+      { $group: { _id: null, total: { $sum: "$positions" } } }
+    ]);
+
+    const OpenPositionsLength = result[0]?.total || 0;
 
     return res.status(200).json({
-      success: true, EmployerInformation, Jobs: jobs.length, JobsInfo: jobs,
+      success: true,
+      CompanyInformation,
       TotalApplications: TotalApplications.length,
-      TotalApplicationsArray: TotalApplications
+      OpenPositionsLength, Employees: Employees.length
     })
   } catch (error) {
     mainError(

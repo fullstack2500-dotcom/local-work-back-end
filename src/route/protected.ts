@@ -1,7 +1,8 @@
 import { Router } from "express";
-import { Dashboard, IsUserLogged, LogOut, viewPostedJobs, viewJobOverview, AddLocation, AddTag, createJob, viewJobs, newApplication, viewApplications, WithdrawApplication, viewApplicationsEmployer, UpdateApp, UpdateInterview, CompanyDetails, ViewWorkers, IsApplied, Locations, ViewProfileController, UpdateWorker, UpdateEmployer, EmployerProfileController, ReviewUpload, PostContact, OpenPositionsTotalApplications, GetIndustries } from "../controller/protected";
+import { Dashboard, UploadWorkerProfilePhoto, IsUserLogged, LogOut, viewPostedJobs, getCityProvinceList, viewJobOverview, AddLocation, AddTag, createJob, viewJobs, newApplication, viewApplications, WithdrawApplication, viewApplicationsEmployer, UpdateApp, UpdateInterview, CompanyDetails, ViewWorkers, IsApplied, Locations, ViewProfileController, UpdateWorker, UpdateEmployer, EmployerProfileController, ReviewUpload, PostContact, OpenPositionsTotalApplications, GetIndustries, UploadEmployerProfilePhoto } from "../controller/protected";
 import authorized from "../middleware/authorized";
 import { employers, worker, admin } from "../middleware/roles";
+import { uploadProfilePhoto } from "../file/upload";
 
 const router = Router()
 
@@ -10,6 +11,7 @@ router.get("/dashboard", authorized, Dashboard)
 router.get("/isWorkerLogged", authorized, worker, IsUserLogged)
 router.get("/isEmployerLogged", authorized, employers, IsUserLogged)
 router.get("/isAdminLogged", authorized, admin, IsUserLogged)
+router.get("/Location", authorized, employers, getCityProvinceList);
 
 
 // GET Requests [Workers]:
@@ -49,7 +51,26 @@ router.post("/contact", authorized, employers, PostContact)
 
 // PUT [Workers]:
 router.put("/withdrawApplication", authorized, worker, WithdrawApplication)
-router.put("/worker/updateProfile", authorized, worker, UpdateWorker)
+router.put(
+  "/worker/updateProfile",
+  authorized,
+  worker,
+  UpdateWorker
+);
+router.put(
+  "/worker/upload-photo",
+  authorized,
+  worker,
+  uploadProfilePhoto.single("photo"),
+  UploadWorkerProfilePhoto
+);
+router.put(
+  "/employer/upload-photo",
+  authorized,
+  employers,
+  uploadProfilePhoto.single("photo"),
+  UploadEmployerProfilePhoto
+);
 
 // PUT [Employers]:
 router.put("/date", authorized, employers, UpdateInterview)
