@@ -1,0 +1,137 @@
+// ---------------------------------------------------------------------
+//  This is the user notifications payload:
+// 
+//  
+//  The user notifications utilizes the following controllers:
+// - PostContact
+// - NewMessage
+// ---------------------------------------------------------------------
+import { Types } from "mongoose";
+
+// Post Contact Payload
+export const PostContactPayload = (
+  user: string,
+  recipientId: string,
+  date: Date
+) => {
+  return {
+    type: "contact",
+    title: `New contact request from ${user}`,
+    description: `A new contact request has been sent by ${user}.`,
+    time: date.toISOString(),
+    read: false,
+    category: "contact",
+    details: `A new contact request has been initiated by ${user}. Review and respond accordingly.`,
+
+    audience: "specific",
+    targetUsers: [recipientId],
+  };
+};
+
+// Job Post Payload:
+export const JobPostPayload = (
+  user: string,
+  jobTitle: string,
+  recipientIds: Types.ObjectId[],
+  date: Date
+) => {
+  return {
+    type: "job_posted",
+    title: `New Job: ${jobTitle}`,
+    description: `${user} posted a new job opening.`,
+    time: date.toISOString(),
+    read: false,
+    category: "job",
+    details: `${user} has posted "${jobTitle}". Check the job posting for full details.`,
+
+    audience: "specific",
+    targetUsers: recipientIds,
+  };
+};
+
+// New Message Payload
+export const NewMessagePayload = (
+  user: string,
+  recipientId: string,
+  date: Date
+) => {
+  return {
+    type: "contact",
+    title: `New message from ${user}`,
+    description: `You have received a new message from ${user}.`,
+    time: date.toISOString(),
+    read: false,
+    category: "contact",
+    details: `A new message has been received from ${user}. Please check the conversation for details.`,
+
+    audience: "specific",
+    targetUsers: [recipientId],
+  };
+};
+
+// Update Application Payload:
+export const UpdateApplicationPayload = (
+  status: string,
+  user: string,
+  date: Date,
+  recipientId: string,
+  jobTitle: string
+) => {
+  return {
+    type: "application",
+
+    title:
+      status === "Accepted"
+        ? `Your application for ${jobTitle} has been accepted`
+        : status === "Not Selected"
+        ? `Your application for ${jobTitle} was not selected`
+        : `Interview scheduled for ${jobTitle}`,
+
+    description:
+      status === "Accepted"
+        ? "Congratulations! Your application has been accepted."
+        : status === "Not Selected"
+        ? "Unfortunately, you were not selected for this position."
+        : "Your interview has been scheduled.",
+
+    time: date.toISOString(),
+    read: false,
+    category: "job",
+
+    details:
+      status === "Accepted"
+        ? `${user} accepted your application for ${jobTitle}.`
+        : status === "Not Selected"
+        ? `${user} marked your application as not selected for ${jobTitle}.`
+        : `${user} scheduled an interview for your ${jobTitle} application.`,
+
+    audience: "specific",
+    targetUsers: [recipientId],
+  };
+};
+
+// ==================== Notify the Employers ======================
+// =
+// =
+// ================================================================
+
+export const NewApplicationPayloadEmployer = (
+  applicantName: string,
+  employerId: string,
+  date: Date
+) => {
+  return {
+    type: "application",
+    title: `New application from ${applicantName}`,
+    description: `${applicantName} submitted a new job application.`,
+
+    time: date.toISOString(),
+    read: false,
+    category: "job",
+
+    details: `A new application has been submitted by ${applicantName}. Review it in the employer dashboard.`,
+
+    audience: "employers",
+    targetUsers: [employerId],
+  };
+};

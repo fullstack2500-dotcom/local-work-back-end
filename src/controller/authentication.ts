@@ -14,6 +14,9 @@ import { filterXSS } from "xss";
 import Company from "../model/Company";
 import { createCompanySchema } from "../validator/authentication";
 import stringComparison from "string-comparison";
+import AdminNotification from "../model/AdminNotification";
+import { WorkerRegisterPayload } from "../notif-payload/admin";
+import { getIO } from "../socket";
 
 const jaro = stringComparison.jaroWinkler;
 
@@ -156,8 +159,10 @@ export const AdminLogin = async (req: Request, res: Response) => {
 }
 
 
-
 export const WorkerRegister = async (req: Request, res: Response) => {
+    
+  const io = getIO();
+
   try {
     const files = req.files as {
       [fieldname: string]: Express.Multer.File[];
@@ -219,6 +224,12 @@ export const WorkerRegister = async (req: Request, res: Response) => {
 
     await newWorker.save();
 
+    const notification = await AdminNotification.create(
+      WorkerRegisterPayload(name, new Date())
+    );
+
+    io.to("admins").emit("notification:new", notification)
+
     // // const token = jwt.sign(
     // //   {
     // //     id: newWorker._id,
@@ -244,6 +255,7 @@ export const WorkerRegister = async (req: Request, res: Response) => {
     instanceErrors(error, res);
   }
 };
+
 
 
 

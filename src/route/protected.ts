@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { Dashboard, UploadWorkerProfilePhoto, IsUserLogged, LogOut, viewPostedJobs, getCityProvinceList, viewJobOverview, AddLocation, AddTag, createJob, viewJobs, newApplication, viewApplications, WithdrawApplication, viewApplicationsEmployer, UpdateApp, UpdateInterview, CompanyDetails, ViewWorkers, IsApplied, Locations, ViewProfileController, UpdateWorker, UpdateEmployer, EmployerProfileController, ReviewUpload, PostContact, OpenPositionsTotalApplications, GetIndustries, UploadEmployerProfilePhoto } from "../controller/protected";
+import { Dashboard, UploadWorkerProfilePhoto, IsUserLogged, LogOut, viewPostedJobs, getCityProvinceList, viewJobOverview, AddLocation, AddTag, createJob, viewJobs, newApplication, viewApplications, WithdrawApplication, viewApplicationsEmployer, UpdateApp, UpdateInterview, CompanyDetails, ViewWorkers, IsApplied, Locations, ViewProfileController, UpdateWorker, UpdateEmployer, EmployerProfileController, ReviewUpload, PostContact, OpenPositionsTotalApplications, GetIndustries, UploadEmployerProfilePhoto, ViewContacts, ViewMessage, NewMessage, ViewContactsEmployer, UserNotifications, MarkAsRead, DeleteNotification } from "../controller/protected";
 import authorized from "../middleware/authorized";
 import { employers, worker, admin } from "../middleware/roles";
 import { uploadProfilePhoto } from "../file/upload";
@@ -12,12 +12,24 @@ router.get("/isWorkerLogged", authorized, worker, IsUserLogged)
 router.get("/isEmployerLogged", authorized, employers, IsUserLogged)
 router.get("/isAdminLogged", authorized, admin, IsUserLogged)
 router.get("/Location", authorized, employers, getCityProvinceList);
+router.get("/notifications", authorized, UserNotifications)
+router.get("/message/:_id", authorized, ViewMessage)
+
+// PATCH [Global]:
+router.patch("/markAsRead/:_id", authorized, MarkAsRead)
+
+// DELETE [Global]:
+router.delete("/deleteNotif/:_id", authorized, DeleteNotification)
+
+// POST Request [Worker & Employer]:
+router.post("/message/:contact", authorized, NewMessage)
 
 
 // GET Requests [Workers]:
 router.get("/viewJobs", authorized, worker, viewJobs)
 router.get("/isApplied/:job", authorized, worker, IsApplied)
 router.get("/worker/profile", authorized, worker, ViewProfileController)
+router.get("/contacts", authorized, worker, ViewContacts)
 
 
 // GET Requests [Employers]:
@@ -35,6 +47,7 @@ router.get("/employer/information", authorized, employers, EmployerProfileContro
 router.get("/openPositions/totalApplications", authorized, employers, OpenPositionsTotalApplications)
 
 router.get("/Industries", authorized, employers, GetIndustries)
+router.get("/employer/contacts", authorized, employers, ViewContactsEmployer)
 
 
 // // POST Requests [Workers]:

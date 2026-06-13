@@ -1,5 +1,4 @@
 import Worker from "../model/Worker";
-import { Request, Response } from "express";
 import {
   AcceptedSchema,
   PendingSchema,
@@ -16,19 +15,62 @@ import {
   DashboardSchema,
   ProfileSchema,
   UpdateWorkersEmployers,
-  SkillsInformation
+  SkillsInformation,
+  CompanySchema,
+  markAsReadAdminSchema,
+  AdminIdSchema
 } from "../validator/admin";
 import { instanceErrors, mainError } from "../errors/showErrors";
 import Employer from "../model/Employer";
 import Job from "../model/Job";
 import Skill from "../model/Skill";
-import Application from "../model/Application";
 import { SortSchema } from "../validator/protected";
-import { filterXSS } from "xss";
 import Industry from "../model/Industry";
 import { Types } from "mongoose";
 import Company from "../model/Company";
+import { Request, Response } from "express";
+import { z } from "zod";
+import filterXSS from "xss";
+import Application from "../model/Application";
+import AdminNotification from "../model/AdminNotification";
+import UserNotification from "../model/UserNotification";
+import { JobPostPayload } from "../notif-payload/user";
+import Admin from "../model/Admin";
+import { getIO } from "../socket";
 
+
+// Profile:
+export const Profile = async (req: Request, res: Response) => {
+  const validatedAdmin = AdminIdSchema.safeParse({ _id: req.user.id })
+
+  if (!validatedAdmin.success) {
+    return res.status(400).json({
+      success: false,
+      message: validatedAdmin.error.issues[0].message
+    })
+  }
+
+  const { _id } = validatedAdmin.data;
+
+  try {
+    const AdminProfile = await Admin.findOne({ _id })
+
+    if (!AdminProfile) {
+      return res.status(404).json({
+        success: false,
+        message: "Admin not found"
+      })
+    }
+
+    return res.status(200).json({ success: true, AdminProfile })
+
+  } catch (error) {
+    mainError(
+      error,
+      res
+    )
+  }
+}
 
 // Dashboard:
 export const Dashboard = async (req: Request, res: Response) => {
@@ -51,6 +93,153 @@ export const Dashboard = async (req: Request, res: Response) => {
   }
 }
 
+
+
+// Update all notifications:
+export const markNotificationsAsRead = async (req: Request, res: Response) => {
+  try {
+    const { scope } = req.body;
+
+    const filter: any = {};
+
+    if (scope === "unread") {
+      filter.read = false;
+    }
+
+    if (scope === "job") {
+      filter.category = "job";
+    }
+
+    if (scope === "account") {
+      filter.category = "account";
+    }
+
+    if (scope === "all") {
+      // no filter
+    }
+
+    const result = await AdminNotification.updateMany(filter, {
+      $set: { read: true },
+    });
+
+    return res.status(200).json({
+      success: true,
+      matched: result.matchedCount,
+      modified: result.modifiedCount,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to mark notifications as read",
+    });
+  }
+};
+
+
+
+// Mark as Read:
+export const MarkAsReadAdmin = async (req: Request, res: Response) => {
+  const validated = markAsReadAdminSchema.safeParse(req.params)
+
+  if (validated.error) {
+    const error = validated.error.issues
+
+    return res.status(400).json({
+      success: false,
+      message: error[0].message
+    })
+  }
+
+  const { _id } = validated.data
+
+  try {
+    const notification = await AdminNotification.findById(_id)
+
+    if (!notification) {
+      return res.status(404).json({
+        success: false,
+        message: "Notification not found"
+      })
+    }
+
+    notification.read = true
+
+    await notification.save()
+
+    return res.status(200).json({
+      success: true,
+      message: "Notification marked as read",
+      notification
+    })
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to mark notification as read"
+    })
+  }
+}
+
+
+
+// Display Admin Notifications:
+export const AdminNotifications = async (req: Request, res: Response) => {
+  try {
+    const notifications = await AdminNotification
+      .find()
+      .sort({ time: -1 })
+
+    return res.status(200).json({
+      success: true,
+      count: notifications.length,
+      notifications
+    })
+    
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch admin notifications"
+    })
+  }
+}
+
+
+
+// Display Applications:
+export const Applications = async (req: Request, res: Response) => {
+  const validatedData = CompanySchema.safeParse({ company: req.params.company })
+
+  if (!validatedData.success) {
+    const errors = validatedData.error.issues
+
+    return res.status(400).json({
+      success: false,
+      message: errors[0].message
+    })
+  }
+
+  const { company } = validatedData.data
+  const sanitizedComp = filterXSS(company, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
+
+  try {
+    const applications = await Application.find({ company })
+                                .populate("worker")
+                                .sort({ createdAt: -1 })
+
+    return res.status(200).json({
+      success: true,
+      applications
+    })
+  } catch (error) {
+    mainError(
+      error,
+      res
+    )
+  }
+}
+
+
+
 // Profiles:
 export const Profiles = async (req: Request, res: Response) => {
   const validatedRole = ProfileSchema.safeParse({ role: req.params.role })
@@ -63,7 +252,7 @@ export const Profiles = async (req: Request, res: Response) => {
       if (role === "worker") {
         Users = await Worker.find().sort({ createdAt: -1 })
       } else {
-        Users = await Employer.find().sort({ createdAt: -1 })
+        Users = await Employer.find().populate("industry").sort({ createdAt: -1 })
       }
 
       return res.status(200).json({
@@ -73,7 +262,7 @@ export const Profiles = async (req: Request, res: Response) => {
     } else {
       let Users = []
       const Workers = await Worker.find().sort({ createdAt: -1 })
-      const Employers = await Employer.find().sort({ createdAt: -1 })
+      const Employers = await Employer.find().populate("industry").sort({ createdAt: -1 })
 
       for (let worker = 0; worker < Workers.length; worker++) {
         if (Workers[worker].status !== "deleted") {
@@ -201,30 +390,51 @@ export const Reports = async (req: Request, res: Response) => {
             year: { $year: "$createdAt" },
             month: { $month: "$createdAt" },
           },
+
           newWorkers: { $sum: 1 },
+
           activeWorkers: {
             $sum: {
-              $cond: [{ $eq: ["$status", "active"] }, 1, 0],
-            },
+              $cond: [
+                { $eq: ["$status", "active"] },
+                1,
+                0
+              ]
+            }
           },
         },
       },
-      { $sort: { "_id.year": 1, "_id.month": 1 } },
+
+      {
+        $sort: {
+          "_id.year": 1,
+          "_id.month": 1,
+        },
+      },
+
       {
         $project: {
           _id: 0,
+
           month: {
             $concat: [
               {
                 $arrayElemAt: [
-                  ["", "Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
+                  [
+                    "",
+                    "Jan","Feb","Mar","Apr","May","Jun",
+                    "Jul","Aug","Sep","Oct","Nov","Dec"
+                  ],
                   "$_id.month",
                 ],
               },
+
               " ",
+
               { $toString: "$_id.year" },
             ],
           },
+
           newWorkers: 1,
           activeWorkers: 1,
         },
@@ -470,6 +680,37 @@ export const TotalWorkers = async (req: Request, res: Response) => {
 
 
 
+// deleteAdminNotifSchema:
+export const deleteAdminNotifSchema = async (req: Request, res: Response) => {
+  const validatedNotif = markAsReadAdminSchema.safeParse(req.params)
+
+  if (validatedNotif.error) {
+    const error = validatedNotif.error.issues
+    return res.status(400).json({ error })
+  }
+
+  const { _id } = validatedNotif.data
+
+  try {
+    const deletedNotif = await AdminNotification.findByIdAndDelete(_id)
+
+    if (!deletedNotif) {
+      return res.status(404).json({
+        error: "Notification not found"
+      })
+    }
+
+    return res.status(200).json({
+      message: "Notification deleted successfully"
+    })
+
+  } catch (error) {
+    mainError(error, res)
+  }
+}
+
+
+
 
 // Verified Workers:
 export const VerifiedWorkers = async (req: Request, res: Response) => {
@@ -583,33 +824,33 @@ export const NewSkillController = async (req: Request, res: Response) => {
 
 
 
-// Displaying Applications:
-export const Applications = async (req: Request, res: Response) => {
-  const validatedStatus = AppStatusSchema.safeParse({ status_PR: "Pending Review", status_IS: "Interview Scheduled", status_AC: "Accepted", status_NS: "Not Selected" })
-  if (validatedStatus.error) { const errors = validatedStatus.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message }) }
+// // Displaying Applications:
+// export const Applications = async (req: Request, res: Response) => {
+//   const validatedStatus = AppStatusSchema.safeParse({ status_PR: "Pending Review", status_IS: "Interview Scheduled", status_AC: "Accepted", status_NS: "Not Selected" })
+//   if (validatedStatus.error) { const errors = validatedStatus.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message }) }
 
-  const { status_PR, status_IS, status_AC, status_NS } = validatedStatus.data
+//   const { status_PR, status_IS, status_AC, status_NS } = validatedStatus.data
 
-  try {
-    const PR = await Application.find({ status: status_PR })
-    const IS = await Application.find({ status: status_IS })
-    const AC = await Application.find({ status: status_AC })
-    const NS = await Application.find({ status: status_NS })
+//   try {
+//     const PR = await Application.find({ status: status_PR })
+//     const IS = await Application.find({ status: status_IS })
+//     const AC = await Application.find({ status: status_AC })
+//     const NS = await Application.find({ status: status_NS })
 
-    return res.status(200).json({
-      success: true,
-      PR: PR.length,
-      IS: IS.length,
-      AC: AC.length,
-      NS: NS.length
-    })
-  } catch (error) {
-    instanceErrors(
-      error,
-      res
-    )
-  }
-}
+//     return res.status(200).json({
+//       success: true,
+//       PR: PR.length,
+//       IS: IS.length,
+//       AC: AC.length,
+//       NS: NS.length
+//     })
+//   } catch (error) {
+//     instanceErrors(
+//       error,
+//       res
+//     )
+//   }
+// }
 
 
 
@@ -669,6 +910,9 @@ export const ViewJobsOld = async (req: Request, res: Response) => {
 
 // Update Status:
 export const UpdateJobStatus = async (req: Request, res: Response) => {
+
+  const io = getIO();
+
   const { job } = req.params
   const { newStatus } = req.body
 
@@ -682,8 +926,32 @@ export const UpdateJobStatus = async (req: Request, res: Response) => {
     const NewStatus = await Job.findOne({ _id: id })
     if (!NewStatus) return res.status(400).json({ success: false, message: "Job not found" })
 
+    const employer = await Employer.findOne({ _id: NewStatus.posted })
+    if (!employer) return res.status(404).json({ success: false, message: "Employer not found" })
+
+    const workers = await Worker.find()
+    const worker_id = workers.map(worker => worker._id)
+
     NewStatus.status = status || NewStatus.status
     await NewStatus.save()
+
+    if (status === "ACCEPTED") {
+      const notification = new UserNotification(
+        JobPostPayload(
+          employer.email,
+          NewStatus.title,
+          worker_id,
+          new Date()
+        )
+      );
+
+      await notification.save();
+
+      io.emit(
+        "notification:worker:new",
+        notification
+      );
+    }
 
     return res.status(200).json({
       success: true,

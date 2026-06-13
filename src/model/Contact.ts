@@ -1,17 +1,64 @@
-import { Document, Schema, model } from "mongoose";
+import mongoose from "mongoose";
 
-export interface IContactDetails extends Document {
-  employer: string,
-  title: string,
-  description: string,
-  worker: string
-}
+const contactSchema = new mongoose.Schema(
+  {
+    worker: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Worker",
+      required: true,
+    },
 
-const ContactDetails: Schema = new Schema({
-  employer: { type: Schema.Types.ObjectId, ref: 'Employer', required: [true, "Employer is required"] },
-  title: { type: String, required: [true, "Title is required"] },
-  description: { type: String, required: [true, "Description is required"] },
-  worker: { type: Schema.Types.ObjectId, ref: 'Worker', required: [true, "Worker is required"] }
-})
+    employerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Employer",
+      required: true,
+    },
 
-export default model<IContactDetails>("Contact", ContactDetails)
+    // Added to match frontend
+    title: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    description: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    // Existing fields kept
+    lastMessage: {
+      type: String,
+      default: "",
+    },
+
+    lastMessageAt: {
+      type: Date,
+      default: Date.now,
+    },
+
+    unreadCountWorker: {
+      type: Number,
+      default: 0,
+    },
+
+    unreadCountEmployer: {
+      type: Number,
+      default: 0,
+    },
+
+    status: {
+      type: String,
+      enum: ["active", "archived", "blocked"],
+      default: "active",
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
+
+contactSchema.index({ worker: 1, employerId: 1 });
+
+export default mongoose.model("Contact", contactSchema);

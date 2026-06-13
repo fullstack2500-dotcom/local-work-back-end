@@ -1,4 +1,5 @@
 import z from "zod";
+import mongoose from "mongoose";
 
 // https://zod.dev/api - Documentation:
 // Total Workers, Verified Workers, Pending Verification, Report Accounts
@@ -53,6 +54,25 @@ export const AppStatusSchema = z.object({
 export const UpdateSchema = z.object({
   id: z.string("Job ID must be a string"),
   status: z.enum(["ACCEPTED", "DECLINED", "DELETED"], "Status must be either accepted or declined")
+})
+
+export const AdminIdSchema = z.object({
+  _id: z.string("Admin ID must be a string")
+})
+
+
+// Company Schema:
+export const CompanySchema = z.object({
+  company: z
+    .string("Company must be a string")
+});
+
+
+// Mark As Read Admin Schema:
+export const markAsReadAdminSchema = z.object({
+  _id: z
+    .string()
+    .min(1, "Notification ID is required")
 })
 
 

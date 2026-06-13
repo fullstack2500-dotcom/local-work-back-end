@@ -45,6 +45,45 @@ export const CompanySchema = z.object({
 
 
 
+// Validator for the AdminNotificationSchema:
+export const AdminNotificationSchema = z.object({
+  type: z.enum([
+    "job_posted",
+    "verification",
+    "application",
+    "report",
+  ], "Type doesn't match the following: job_posted, verification, application, report"),
+
+  title: z
+    .string("Title must be a string")
+    .trim()
+    .min(1, "Title is required"),
+
+  description: z
+    .string("Title must be a string")
+    .min(1, "Description is required"),
+
+  time: z
+    .string()
+    .min(1, "Time is required"),
+
+  read: z
+    .boolean()
+    .default(false),
+
+  category: z.enum([
+    "job",
+    "account",
+  ]),
+
+  details: z
+    .string()
+    .nullable()
+    .optional(),
+});
+
+
+
 // Job Overview Schema:
 export const JobOverviewSchema = z.object({
   job: z.string("Job ID must be a string")
@@ -222,6 +261,20 @@ export const UpdateEmployerSchema = z.object({
   industry: z.string("Industry must be a string")
 })
 
+// View Message by Contact ID:
+export const ViewMessageByContactID = z.object({
+  contact: z.string("Contact ID must be a string")
+})
+
+// Post Message: // contact, worker, role, content
+export const PostMessage = z.object({
+  contactId: z.string("Contact ID must be a string"),
+  senderId: z.string("Sender ID must be a string"),
+  recipientId: z.string("Recipient ID must be a string"),
+  senderRole: z.enum(["worker", "employer"]),
+  content: z.string("Content must be a string").min(1, "Contact must have at least 1 character")
+})
+
 // Post Contacts:
 export const PostContacts = z.object({
   employer: z.string("_id must be a string"),
@@ -245,4 +298,9 @@ export const RatingSchema = z.object({
 // Employer ID Schema:
 export const EmployerSchemaid = z.object({
   employer: z.string("_id must be a string")
+})
+
+// Notification ID Schema:
+export const NotificationIDSchema = z.object({
+  _id: z.string("_id must be a string")
 })

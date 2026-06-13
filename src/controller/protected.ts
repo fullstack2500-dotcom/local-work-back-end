@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { ApplicationSchema, CompanySchema, JobOverviewSchema, EmployerIdSchema, JobSchema, LocationSchema, TagSchema, employerIdSchema, ViewProfile, WorkerIDJob, JobIDJob, ApplicationStatusUpdate, OnlyAccepted, UpdateApplication, InterviewDate, CompanySchemaID, IsAppliedS, WorkerID, TimeLineStatus, UpdateWorkerSchema, UpdateEmployerSchema, EmployerProfileS, RatingSchema, PostContacts, EmployerSchemaid, SkillID } from "../validator/protected";
+import { ApplicationSchema, CompanySchema, JobOverviewSchema, EmployerIdSchema, JobSchema, LocationSchema, TagSchema, employerIdSchema, ViewProfile, WorkerIDJob, JobIDJob, ApplicationStatusUpdate, OnlyAccepted, UpdateApplication, InterviewDate, CompanySchemaID, IsAppliedS, WorkerID, TimeLineStatus, UpdateWorkerSchema, UpdateEmployerSchema, EmployerProfileS, RatingSchema, PostContacts, EmployerSchemaid, SkillID, PostMessage, ViewMessageByContactID, NotificationIDSchema } from "../validator/protected";
 import Job from "../model/Job";
 import { filterXSS } from "xss";
 import Application from "../model/Application";
@@ -17,6 +17,14 @@ import Rating from "../model/Rating";
 import Contact from "../model/Contact";
 import axios from "axios";
 import Company from "../model/Company";
+import AdminNotification from "../model/AdminNotification";
+import UserNotification from "../model/UserNotification";
+import { createJobPayload, NewApplicationPayload } from "../notif-payload/admin";
+import { NewMessagePayload, PostContactPayload, UpdateApplicationPayload, NewApplicationPayloadEmployer } from "../notif-payload/user";
+import { getIO } from "../socket";
+import Message from "../model/Message";
+
+
 
 // Dashboard:
 export const Dashboard = async (req: Request, res: Response) => {
@@ -37,9 +45,99 @@ export const IsUserLogged = async (req: Request, res: Response) => {
 }
 
 
+// User Notifications
+export const UserNotifications = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const notifications = await UserNotification.find({
+      targetUsers: req.user.id,
+    }).sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      notifications,
+    });
+  } catch (error) {
+    instanceErrors(error, res);
+  }
+};
+
+
+// Mark as Read:
+export const MarkAsRead = async (req: Request, res: Response) => {
+  const validatedData = NotificationIDSchema.safeParse({ _id: req.params._id })
+
+  if (!validatedData.success) {
+    return res.status(400).json({
+      success: false,
+      message: validatedData.error.issues[0].message
+    })
+  }
+
+  const { _id } = validatedData.data;
+
+  try {
+    const notification = await UserNotification.findOne({ _id })
+
+    if (!notification) {
+      return res.status(404).json({
+        success: false,
+        message: "Notification not found"
+      })
+    }
+
+    notification.read = true || notification?.read
+    await notification.save()
+
+    return res.status(200).json({
+      success: true,
+      message: "Marked as Read"
+    })
+  } catch (error) {
+    mainError(error, res)
+  }
+}
+
+// Mark as Read:
+export const DeleteNotification = async (req: Request, res: Response) => {
+  const validatedData = NotificationIDSchema.safeParse({ _id: req.params._id })
+
+  if (!validatedData.success) {
+    return res.status(400).json({
+      success: false,
+      message: validatedData.error.issues[0].message
+    })
+  }
+
+  const { _id } = validatedData.data;
+
+  try {
+    const notification = await UserNotification.findOneAndDelete({ _id })
+
+    if (!notification) {
+      return res.status(404).json({
+        success: false,
+        message: "Notification not found"
+      })
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Deleted"
+    })
+  } catch (error) {
+    mainError(error, res)
+  }
+}
+
 
 // Create New Application:
 export const newApplication = async (req: Request, res: Response) => {
+    
+  const io = getIO();
+
   req.body.worker = req.user.id;
 
   const validatedData = ApplicationSchema.safeParse(req.body);
@@ -90,6 +188,33 @@ export const newApplication = async (req: Request, res: Response) => {
     const newApplication = new Application({ job, worker, location, company: jobData.company });
     await newApplication.save();
 
+    const notification = await AdminNotification.create(
+      NewApplicationPayload(jobData.title, new Date())
+    );
+
+    io.emit(
+      "notification:new",
+      notification
+    );
+
+    const workerInformation = await Worker.findOne({ _id: worker })
+
+    if (!workerInformation) {
+      return res.status(404).json({
+        success: false,
+        message: "Worker not found"
+      })
+    }
+
+    const EmployerNotification = await UserNotification.create(
+      NewApplicationPayloadEmployer(workerInformation.name, String(jobData.posted), new Date())
+    )
+
+    io.to(jobData.posted.toString()).emit(
+      "notification:employer:new",
+      EmployerNotification
+    );
+
     return res.status(200).json({
       success: true,
       application: newApplication,
@@ -103,6 +228,9 @@ export const newApplication = async (req: Request, res: Response) => {
 
 // Create new Job:
 export const createJob = async (req: Request, res: Response) => {
+    
+  const io = getIO();
+
   req.body.posted 
     = req.user.id
 
@@ -143,7 +271,20 @@ export const createJob = async (req: Request, res: Response) => {
       
     const newJob = new Job(payload)
     await newJob.save()
-    
+
+    const notification = await AdminNotification.create(
+      createJobPayload(
+        payload.category,
+        details.email,
+        new Date()
+      )
+    );
+
+    io.emit(
+      "notification:new",
+      notification
+    );
+
     return res.status(201).json({
       success: true,
       message: "Job Successfully Created!"
@@ -251,29 +392,264 @@ export const Locations = async (req: Request, res: Response) => {
 
 
 
-// Post a Contact:
-export const PostContact = async (req: Request, res: Response) => {
-  const validatedData = PostContacts.safeParse({ ...req.body, employer: req.user.id })
-  if (!validatedData.success) { const errors = validatedData.error._zod.def; return res.status(400).json({ success: false, message: errors[0].message })}
+// View Contacts:
+export const ViewContacts = async (req: Request, res: Response) => {
+  const validatedData = WorkerIDJob.safeParse({ worker: req.user.id })
 
-  const { employer, title, description, worker } = validatedData.data
+  if (!validatedData.success) {
+    const errors = validatedData.error.issues;
+    return res.status(400).json({ success: false, message: errors[0].message })
+  }
+
+  const { worker } = validatedData.data;
 
   try {
-    const Title = filterXSS(title, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
-    const Description = filterXSS(description, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
+    const contacts = await Contact.find({ worker })
+      .sort({ createdAt: -1 })
+      .populate({
+        path: "employerId",
+        populate: {
+          path: "industry",
+          select: "title",
+        },
+      });
 
-    const newContact = new Contact({ employer, title: Title, description: Description, worker })
-    await newContact.save()
+    return res.status(200).json({
+      success: true,
+      contacts
+    })
+  } catch (error) {
+    mainError(
+      error,
+      res
+    )
+  }
+}
 
+
+
+
+// View Contacts:
+export const ViewContactsEmployer = async (req: Request, res: Response) => {
+  const validatedData = employerIdSchema.safeParse({ id: req.user.id, role: req.user.role })
+
+  if (!validatedData.success) {
+    const errors = validatedData.error.issues;
+    return res.status(400).json({ success: false, message: errors[0].message })
+  }
+
+  const { id } = validatedData.data;
+
+  try {
+    const contacts = await Contact.find({ employerId: id })
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      contacts
+    })
+  } catch (error) {
+    mainError(
+      error,
+      res
+    )
+  }
+}
+
+
+
+// View Messages: // contact, worker, role, content
+export const ViewMessage = async (req: Request, res: Response) => {
+  const validatedData = ViewMessageByContactID.safeParse({ contact: req.params._id })
+
+  if (!validatedData.success) {
+    const errors = validatedData.error.issues;
+    return res.status(400).json({
+      success: false,
+      message: errors[0].message
+    })
+  }
+
+  const { contact } = validatedData.data;
+
+  try {
+    const ViewMessages = await Message.find({ contactId: contact }).sort({ createdAt: 1 })
+
+    return res.status(200).json({
+      success: true,
+      ViewMessages
+    })
+  } catch (error) {
+    mainError(error, res)
+  }
+}
+
+
+
+// New Message:
+export const NewMessage = async (req: Request, res: Response) => {
+    
+  const io = getIO();
+
+  const validatedData = PostMessage.safeParse({
+    contactId: req.params.contact,
+    senderId: req.user.id,
+    recipientId: req.body.recipient,
+    senderRole: req.user.role,
+    content: req.body.content
+  });
+
+  if (!validatedData.success) {
+    const errors = validatedData.error.issues;
+
+    return res.status(400).json({
+      success: false,
+      message: errors[0].message
+    });
+  }
+
+  const { contactId, senderId, recipientId, senderRole, content } = validatedData.data;
+
+  try {
+    const sanitizedContent = filterXSS(content, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true });
+
+    const newMessage = new Message({ contactId, senderId, recipientId, senderRole, content: sanitizedContent });
+    await newMessage.save();
+
+    let senderLabel = "";
+    let role = "";
+
+    if (senderRole === "worker") {
+      const worker = await Worker.findById(senderId).select("name");
+      senderLabel = worker?.name || "Unknown Worker";
+      role = "employer"
+    }
+
+    if (senderRole === "employer") {
+      const employer = await Employer.findById(senderId).select("email");
+      senderLabel = employer?.email || "Unknown Employer";
+      role = "worker"
+    }
+    
+    const notification = await UserNotification.create(
+      NewMessagePayload(
+        senderLabel,
+        recipientId,
+        new Date()
+      )
+    );
+
+    io.to(recipientId.toString()).emit(
+      `notification:${role}:new`,
+      notification
+    );
+    
     return res.status(201).json({
       success: true,
-      message: "Contact successfully added!"
+      message: "Successfully sent message"
     })
   } catch (error) {
     instanceErrors(
       error,
       res
     )
+  }
+}
+
+
+
+// Post a Contact:
+export const PostContact = async (req: Request, res: Response) => {
+    
+  const io = getIO();
+
+  const validatedData = PostContacts.safeParse({
+    ...req.body,
+    employer: req.user.id
+  })
+
+  if (!validatedData.success) {
+    return res.status(400).json({
+      success: false,
+      message: validatedData.error.issues[0].message
+    })
+  }
+
+  const { employer, title, description, worker } = validatedData.data
+
+  try {
+    const Title = filterXSS(title, {
+      whiteList: {},
+      stripIgnoreTag: true,
+      stripIgnoreTagBody: true
+    })
+
+    const Description = filterXSS(description, {
+      whiteList: {},
+      stripIgnoreTag: true,
+      stripIgnoreTagBody: true
+    })
+
+    const newContact = new Contact({
+      employerId: employer,
+      worker,
+
+      title: Title,
+      description: Description,
+
+      // keep existing fields updated
+      lastMessage: Description,
+      lastMessageAt: new Date(),
+      unreadCountWorker: 1,
+      unreadCountEmployer: 0,
+      status: "active"
+    })
+
+    await newContact.save()
+
+    const EmployerEmail = await Employer.findOne({ _id: employer })
+
+    if (!EmployerEmail) {
+      return res.status(400).json({
+        success: false,
+        Message: "Employer Not Found"
+      })
+    }
+
+    const notificationPayload = PostContactPayload(
+      EmployerEmail.email, // or whatever display name you use
+      worker,
+      new Date()
+    )
+
+    const notifications = new UserNotification(
+      notificationPayload
+    );
+
+    await notifications.save();
+
+    console.log(
+      "Worker room:",
+      worker.toString()
+    );
+
+    console.log(
+      "Emitting to room:",
+      worker.toString()
+    );
+
+    io.to(worker.toString()).emit(
+      "notification:worker:new",
+      notifications
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: "Contact successfully added!"
+    })
+
+  } catch (error) {
+    instanceErrors(error, res)
   }
 }
 
@@ -914,7 +1290,11 @@ export const WithdrawApplication = async (req: Request, res: Response) => {
 
 // Accept Application:
 export const UpdateApp = async (req: Request, res: Response) => {
+    
+  const io = getIO();
+
   const validatedStatus = UpdateApplication.safeParse(req.body);
+  const validatedEmployer = employerIdSchema.safeParse({ id: req.user.id, role: req.user.role })
 
   if (!validatedStatus.success) {
     const errors = validatedStatus.error.issues;
@@ -924,7 +1304,16 @@ export const UpdateApp = async (req: Request, res: Response) => {
     });
   }
 
+  if (!validatedEmployer.success) {
+    const errors = validatedEmployer.error.issues;
+    return res.status(400).json({
+      success: false,
+      message: errors[0].message,
+    });
+  }
+
   const { _id, status, timeline } = validatedStatus.data;
+  const { id } = validatedEmployer.data;
 
   try {
     const application = await Application.findOne({ _id });
@@ -934,6 +1323,10 @@ export const UpdateApp = async (req: Request, res: Response) => {
     const job = await Job.findById(application.job);
     if (!job)
       return res.status(404).json({ success: false, message: "Job not found" });
+
+    const employer = await Employer.findOne({ _id: id })
+    if (!employer)
+      return res.status(404).json({ success: false, message: "Employer not found" })
 
     const previousStatus = application.status;
     const newStatus = status;
@@ -965,6 +1358,33 @@ export const UpdateApp = async (req: Request, res: Response) => {
     application.timeline = timeline;
 
     await application.save();
+
+    const notifications = new UserNotification(
+      UpdateApplicationPayload(
+        status,
+        employer.email,
+        new Date(),
+        application.worker,
+        job.title
+      )
+    );
+
+    await notifications.save();
+    
+    console.log(
+      "Worker room:",
+      application.worker.toString()
+    );
+
+    console.log(
+      "Emitting to room:",
+      application.worker.toString()
+    );
+
+    io.to(application.worker.toString()).emit(
+      "notification:worker:new",
+      notifications
+    );
 
     return res.status(200).json({
       success: true,

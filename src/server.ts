@@ -7,10 +7,62 @@ import helmet from "helmet";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
 import cookieParser from "cookie-parser"
+import { Server } from "socket.io";
+import { initSocket } from "./socket";
+import http from "http"
 
 connectDB()
 
 const app = express()
+const server = http.createServer(app);
+
+
+const io = initSocket(server)
+
+// io.on("connection", (socket) => {
+//   console.log("Connected:", socket.id);
+
+//   const workerId = socket.handshake.auth.workerId;
+
+//   console.log("Auth workerId:", workerId);
+
+//   if (workerId) {
+//     socket.join(workerId);
+
+//     console.log(
+//       "Rooms after join:",
+//       [...socket.rooms]
+//     );
+//   }
+// });
+
+io.on("connection", (socket) => {
+  const workerId = socket.handshake.auth.workerId;
+  const employerId = socket.handshake.auth.employerId;
+  const adminId = socket.handshake.auth.adminId;
+
+  console.log("CONNECTED:", socket.id);
+  console.log("AUTH:", socket.handshake.auth);
+
+  if (employerId) {
+    console.log("[SOCKET] employer connecting:", employerId);
+    socket.join(employerId);
+
+    console.log(
+      "[SOCKET] rooms after join:",
+      Array.from(socket.rooms)
+    );
+  }
+
+  if (workerId) {
+    socket.join(workerId);
+  }
+
+  if (adminId) {
+    socket.join("admins");
+  }
+});
+
 
 // Allow Cookies:
 app.use(cookieParser())
@@ -53,6 +105,6 @@ app.use("/api/admin", adminRoutes)
 
 const port = process.env.PORT || 5000
 
-app.listen(port, () => {
-  console.log(`Server listening on port ${port}`)
-})
+server.listen(port, () => {
+  console.log(`Server listening on port ${port}`);
+});
