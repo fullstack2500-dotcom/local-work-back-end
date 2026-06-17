@@ -23,8 +23,16 @@ import { createJobPayload, NewApplicationPayload } from "../notif-payload/admin"
 import { NewMessagePayload, PostContactPayload, UpdateApplicationPayload, NewApplicationPayloadEmployer } from "../notif-payload/user";
 import { getIO } from "../socket";
 import Message from "../model/Message";
+import stringComparison from "string-comparison";
 
 
+
+const jaro = stringComparison.jaroWinkler;
+
+const normalize = (s: string) =>
+  s.toLowerCase().replace(/[^\w\s]/g, "").trim();
+
+const THRESHOLD = 0.95;
 
 // Dashboard:
 export const Dashboard = async (req: Request, res: Response) => {
@@ -99,6 +107,38 @@ export const MarkAsRead = async (req: Request, res: Response) => {
     mainError(error, res)
   }
 }
+
+
+// Mark All As Read:
+export const MarkAllAsRead = async (req: Request, res: Response) => {
+  const validatedWorkerEmployer = WorkerIDJob.safeParse({ worker: req.user.id })
+
+  if (!validatedWorkerEmployer.success) {
+    const errors = validatedWorkerEmployer.error.issues;
+
+    return res.status(400).json({
+      success: false,
+      message: errors[0].message
+    })
+  }
+
+  const { worker } = validatedWorkerEmployer.data;
+
+  try {
+    await UserNotification.updateMany({ targetUsers: worker, read: false }, {
+      read: true
+    })
+
+    return res.status(200).json({
+      success: true,
+      message: "All Notifications Mark as Read!"
+    })
+  } catch (error) {
+    mainError(error, res)
+  }
+}
+
+
 
 // Mark as Read:
 export const DeleteNotification = async (req: Request, res: Response) => {
@@ -518,6 +558,21 @@ export const NewMessage = async (req: Request, res: Response) => {
 
     let senderLabel = "";
     let role = "";
+    
+    
+    await Contact.findByIdAndUpdate(
+      contactId,
+      {
+        $set: {
+          lastMessage: sanitizedContent,
+          lastMessageAt: new Date(),
+        },
+        $inc:
+          senderRole === "worker"
+            ? { unreadCountEmployer: 1 }
+            : { unreadCountWorker: 1 },
+      }
+    );
 
     if (senderRole === "worker") {
       const worker = await Worker.findById(senderId).select("name");
@@ -555,6 +610,44 @@ export const NewMessage = async (req: Request, res: Response) => {
     )
   }
 }
+
+
+// Mark Contant As Read:
+export const MarkContactAsRead = async (
+  req: Request,
+  res: Response
+) => {
+  const { contactId } = req.params;
+  const { role } = req.user;
+
+  try {
+    const update =
+      role === "worker"
+        ? { unreadCountWorker: 0 }
+        : { unreadCountEmployer: 0 };
+
+    const contact = await Contact.findByIdAndUpdate(
+      contactId,
+      { $set: update },
+      { new: true }
+    );
+
+    if (!contact) {
+      return res.status(404).json({
+        success: false,
+        message: "Contact not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Unread count reset successfully",
+      contact,
+    });
+  } catch (error) {
+    instanceErrors(error, res);
+  }
+};
 
 
 
@@ -1023,6 +1116,53 @@ export const UpdateEmployer = async (req: Request, res: Response) => {
       EmployerInformation.industry = new Types.ObjectId(industry);
     }
 
+    const CompanyName = normalize(company);
+    const Industry = normalize(industry);
+
+    const companies = await Company.find({});
+
+    let bestMatch = null;
+    let bestScore = 0;
+
+    for (const c of companies) {
+      const score = jaro.similarity(CompanyName, normalize(c.name));
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestMatch = c;
+      }
+    }
+
+    const THRESHOLD = 0.95;
+
+    let finalCompanyName = CompanyName;
+
+    // 3. decide reuse or create
+    if (bestMatch && bestScore >= THRESHOLD) {
+      finalCompanyName = bestMatch.name;
+    } else {
+      const created = new Company({
+        name: company, // keep original casing
+        industry: Industry
+      });
+
+      await created.save();
+
+      finalCompanyName = created.name;
+    }
+
+    await Job.updateMany(
+      { posted: _id },
+      { $set: { company: finalCompanyName } }
+    )
+
+    const jobs = await Job.find({ posted: _id }).select('_id')
+
+    await Application.updateMany(
+      { job: { $in: jobs.map(j => j._id) } },
+      { $set: { company: finalCompanyName } }
+    )
+
     await EmployerInformation.save();
 
     return res.status(200).json({
@@ -1435,27 +1575,31 @@ export const UpdateInterview = async (req: Request, res: Response) => {
 
 // View Company Details:
 export const CompanyDetails = async (req: Request, res: Response) => {
-  const validatedCompany = CompanySchemaID.safeParse({ _id: req.user.company })
 
-  if (!validatedCompany.success) {
-    const errors = validatedCompany.error.issues;
+  const validatedEmployer = EmployerIdSchema.safeParse({ userId: req.user.id })
+
+  if (!validatedEmployer.success) {
+    const errors = validatedEmployer.error.issues;
     return res.status(400).json({
       success: false,
       message: errors[0].message
     })
   }
 
-  const { _id } = validatedCompany.data
+  const { userId } = validatedEmployer.data
 
   try {
-    const CompanyInformation = await Company.findOne({ name: _id }).populate("industry")
+    const employer = await Employer.findById(userId);
+    if (!employer) return res.status(404).json({ success: false })
+
+    const CompanyInformation = await Company.findOne({ name: employer.company }).populate("industry")
     if (!CompanyInformation) return res.status(404).json({ success: false, message: "Company not available" })
 
-    const TotalApplications = await Application.find({ company: _id })
-    const Employees = await Application.find({ company: _id, timeline: "Final Decision", status: "Accepted" })
+    const TotalApplications = await Application.find({ company: employer.company })
+    const Employees = await Application.find({ company: employer.company, timeline: "Final Decision", status: "Accepted" })
 
     const result = await Job.aggregate([
-      { $match: { company: _id } },
+      { $match: { company: employer.company, status: "ACCEPTED" } },
       { $group: { _id: null, total: { $sum: "$positions" } } }
     ]);
 

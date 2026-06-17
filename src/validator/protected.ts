@@ -246,7 +246,7 @@ export const UpdateWorkerSchema = z.object({
   phoneNumber: z.string("Phone must be a valid phone number").regex(/^(\+639)\d{9}$/, "Please enter a valid phone number, ex. +639..."),
   location: z.string("Location must be a string"),
   jobTitle: z.string("Title must be string"),
-  yearsOfExperience: z.string("Experience must be a string").regex(/^[A-Za-z0-9 ]*$/, "Name must only include letters, digits, and spaces").optional(),
+  yearsOfExperience: z.string("Experience must be a string").regex(/^[A-Za-z0-9 ]*$/, "Experience must only include letters, digits, and spaces").optional(),
   about_me: z.string("About Me must be a string"),
   availability: z.enum(["Full-Time", "Part-Time", "Contract", "Flexible"], "Availability must be either Full-Time, Part-Time, Contract, Flexible"),
   expected_salary: z.string("Expected Salary must be a string"),

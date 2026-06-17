@@ -1,7 +1,7 @@
-import { Document, ObjectId, Schema, model } from "mongoose"
+import { Document, ObjectId, Types, Schema, model } from "mongoose"
 
 export interface IApplication extends Document {
-  job: string,
+  job: Types.ObjectId,
   worker: string,
   location: string,
   timeline: string,

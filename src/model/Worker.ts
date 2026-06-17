@@ -51,7 +51,7 @@ const WorkerSchema: Schema = new Schema({
   resume: { type: String, default: "" },
   jobTitle: { type: String, default: "N/A" },
   location: { type: String, default: "No Specified Location" },
-  yearsOfExperience: { type: String, default: "N/A" },
+  yearsOfExperience: { type: String, default: "Years of experience isn't specified" },
   availability: { type: String, enum: ["Full-Time", "Part-Time", "Contract", "Flexible"], default: "Full-Time" },
   expected_salary: { type: String, default: "N/A" },
   about_me: { type: String, default: "N/A" },
