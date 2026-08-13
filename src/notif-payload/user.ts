@@ -74,7 +74,7 @@ export const UpdateApplicationPayload = (
   status: string,
   user: string,
   date: Date,
-  recipientId: string,
+  recipientId: Types.ObjectId,
   jobTitle: string
 ) => {
   return {
@@ -110,6 +110,46 @@ export const UpdateApplicationPayload = (
   };
 };
 
+// Update Application Payload:
+export const UpdateReportPayload = (
+  status: string,
+  user: string,
+  date: Date,
+  recipientId: string
+) => {
+  return {
+    type: "report",
+
+    title:
+      status === "Under Review"
+        ? "Your report is under review"
+        : status === "Resolved"
+        ? "Your report has been resolved"
+        : "Your report has been rejected",
+
+    description:
+      status === "Under Review"
+        ? "Our team is currently reviewing your report."
+        : status === "Resolved"
+        ? "Your report has been reviewed and resolved."
+        : "Your report has been reviewed and rejected.",
+
+    time: date.toISOString(),
+    read: false,
+    category: "report",
+
+    details:
+      status === "Under Review"
+        ? `${user} is currently reviewing your report.`
+        : status === "Resolved"
+        ? `${user} marked your report as resolved.`
+        : `${user} rejected your report.`,
+
+    audience: "specific",
+    targetUsers: [recipientId],
+  };
+};
+
 // ==================== Notify the Employers ======================
 // =
 // =
@@ -135,3 +175,24 @@ export const NewApplicationPayloadEmployer = (
     targetUsers: [employerId],
   };
 };
+
+export const NewReportPayloadEmployer = (
+  workerName: string,
+  employerId: string,
+  date: Date
+) => {
+  return {
+    type: "report",
+    title: "New report from " + workerName,
+    description: `${workerName} submitted a new report.`,
+
+    time: date.toISOString(),
+    read: false,
+    category: "report",
+
+    details: `A new report has been submitted by ${workerName}. Review it in the employer dashboard.`,
+
+    audience: "employers",
+    targetUsers: [employerId],
+  }
+}

@@ -10,8 +10,28 @@ import cookieParser from "cookie-parser"
 import { Server } from "socket.io";
 import { initSocket } from "./socket";
 import http from "http"
+import applicationHealthRouter from "./route/applicationHealth.route";
+import mongoose from "mongoose";
+import PlatformHealth from "./model/PlatformHealth";
 
 connectDB()
+
+// service
+export const recordPlatformHealth = async () => {
+  let status: "OK" | "ERR" = "OK";
+
+  try {
+    await mongoose.connection.db?.command({
+      ping: 1
+    });
+  } catch {
+    status = "ERR";
+  }
+
+  await PlatformHealth.create({
+    status
+  });
+};
 
 const app = express()
 const server = http.createServer(app);
@@ -103,8 +123,17 @@ app.use("/api/auth", authRouter)
 app.use("/api/pro", protectedRoutes)
 app.use("/api/admin", adminRoutes)
 
+
+app.use("/api/application-health", applicationHealthRouter)
+
 const port = process.env.PORT || 5000
 
 server.listen(port, () => {
   console.log(`Server listening on port ${port}`);
+
+  recordPlatformHealth();
+
+  setInterval(() => {
+    recordPlatformHealth();
+  }, 60000); // every 1 minute
 });

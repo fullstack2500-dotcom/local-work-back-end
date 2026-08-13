@@ -4,6 +4,10 @@ import mongoose from "mongoose";
 // https://zod.dev/api - Documentation:
 // Total Workers, Verified Workers, Pending Verification, Report Accounts
 
+export const VerifyWorkerSchema = z.object({
+  worker: z.string("Worker ID must be a string")
+})
+
 export const TotalWorkerSchema = z.object({
   role: z.enum(["worker"], "Role must be worker")
 })
@@ -34,6 +38,11 @@ export const DeclinedWorkersSchema = z.object({
 })
 
 
+// Update Worker Reports:
+export const UpdateReportSchema = z.object({
+  _id: z.string("Report ID must be a string"),
+  status: z.enum(["Pending", "Resolved", "Rejected"])
+})
 
 
 // Accept the admin to add skill:

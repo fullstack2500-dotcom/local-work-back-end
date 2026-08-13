@@ -50,3 +50,21 @@ export const NewApplicationPayload = ( title: string, date: Date
   }
 }
 
+
+// New Report Payload:
+export const NewReportPayload = (
+  title: string,
+  date: Date
+) => {
+  return {
+    type: "report",
+    title: `New Employer Report: ${title}`,
+    description: `An employer has submitted a new report regarding "${title}".`,
+    time: date.toISOString(),
+    read: false,
+    category: "job",
+    details: `A new report has been submitted by the employer regarding "${title}". Please review the report and take any necessary action if required.`,
+  };
+};
+
+

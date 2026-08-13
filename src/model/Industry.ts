@@ -5,7 +5,8 @@ export interface IIndustry extends Document {
 }
 
 const IndustrySchema: Schema = new Schema({
-  title: { type: String, required: [true, "Industry is required"] }
+  title: { type: String, required: [true, "Industry is required"] },
+  notAccepted: { type: Boolean, default: true }
 }, { timestamps: true })
 
 export default model<IIndustry>("Industry", IndustrySchema)

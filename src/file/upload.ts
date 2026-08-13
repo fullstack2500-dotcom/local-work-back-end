@@ -21,15 +21,36 @@ const sanitizeFileName = (name: string): string => {
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, uploadPath);
+
+    if (file.fieldname === "photo") {
+      cb(null, profileUploadPath);
+    } 
+    
+    else if (file.fieldname === "resume") {
+      cb(null, uploadPath);
+    }
+
   },
+
   filename: (req: Request, file, cb) => {
     const workerName = req.body.name || "worker";
     const sanitizedName = sanitizeFileName(workerName);
     const timestamp = Date.now();
     const extension = path.extname(file.originalname);
 
-    cb(null, `${sanitizedName}_${timestamp}${extension}`);
+    if (file.fieldname === "photo") {
+      cb(
+        null,
+        `${sanitizedName}_profile_${timestamp}${extension}`
+      );
+    } 
+    
+    else {
+      cb(
+        null,
+        `${sanitizedName}_${timestamp}${extension}`
+      );
+    }
   },
 });
 
@@ -63,36 +84,60 @@ fs.mkdirSync(permitUploadPath, { recursive: true });
 
 
 const permitStorage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    cb(null, permitUploadPath);
+  destination: (_req, file, cb) => {
+    if (file.fieldname === "photo") {
+      cb(null, profileUploadPath);
+    } else if (file.fieldname === "permit") {
+      cb(null, permitUploadPath);
+    } else {
+      cb(new Error("Unexpected field"), "");
+    }
   },
-  filename: (req: Request, file, cb) => {
+
+  filename: (req, file, cb) => {
     const companyName = req.body.company || "employer";
     const sanitizedName = sanitizeFileName(companyName);
     const timestamp = Date.now();
     const extension = path.extname(file.originalname);
 
-    cb(null, `${sanitizedName}_${timestamp}${extension}`);
+    if (file.fieldname === "photo") {
+      cb(null, `${sanitizedName}_profile_${timestamp}${extension}`);
+    } else {
+      cb(null, `${sanitizedName}_permit_${timestamp}${extension}`);
+    }
   },
 });
 
-
 export const uploadEmployerPermit = multer({
   storage: permitStorage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // same limit
+  limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const allowedTypes = [
-      "application/pdf",
+    const imageTypes = [
       "image/jpeg",
       "image/png",
       "image/jpg",
     ];
 
-    if (file.fieldname === "permit" && allowedTypes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error("Invalid file type"));
+    const permitTypes = [
+      "application/pdf",
+      ...imageTypes,
+    ];
+
+    if (
+      file.fieldname === "photo" &&
+      imageTypes.includes(file.mimetype)
+    ) {
+      return cb(null, true);
     }
+
+    if (
+      file.fieldname === "permit" &&
+      permitTypes.includes(file.mimetype)
+    ) {
+      return cb(null, true);
+    }
+
+    cb(new Error("Invalid file type"));
   },
 });
 
@@ -135,3 +180,33 @@ export const uploadProfilePhoto = multer({
   },
 });
 
+
+
+// Source - https://stackoverflow.com/a/67846776
+// Posted by Aman Silawat
+// Retrieved 2026-07-17, License - CC BY-SA 4.0
+
+// Source - https://stackoverflow.com/a/67846776
+// Posted by Aman Silawat
+// Retrieved 2026-07-17, License - CC BY-SA 4.0
+
+
+const jobStorage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, path.join(__dirname, '../../uploads/workerJobsCompleted'))
+    },
+    filename: function (req, file, cb) {
+            cb(null, file.fieldname + '-' + Date.now() + file.originalname)
+    }
+});
+
+
+// https://medium.com/@mohsinansari.dev/handling-file-uploads-and-file-validations-in-node-js-with-multer-a3716ec528a3
+// https://medium.com/@mohsinansari.dev/handling-file-uploads-and-file-validations-in-node-js-with-multer-a3716ec528a3
+// https://www.geeksforgeeks.org/node-js/upload-files-to-local-public-folder-in-nodejs-using-multer/
+
+
+export const uploadJobs = multer({
+    storage: jobStorage,
+    limits: { fileSize: 1 * 1024 * 1024 }
+}).array("workerUpload");

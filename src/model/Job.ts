@@ -19,7 +19,8 @@ export interface IJob extends Document {
   category: string,
   applyBefore: string,
   contactEmail: string,
-  contactPhone: string
+  contactPhone: string,
+  createdAt: Date
 }
 
 const JobSchema: Schema = new Schema({

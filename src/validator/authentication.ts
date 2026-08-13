@@ -45,7 +45,7 @@ export const WorkerRegisterSchema = z.object({
 
   // Source - https://stackoverflow.com/a/21456918 | Posted by Srinivas, modified by community. See post 'Timeline' for change history | Retrieved 2026-02-09, License - CC BY-SA 4.0
   password: z.string("Password must be a string").min(6, "Password must have at least 6 characters").max(16, "Password must have a maximum of 16 characters").regex(
-    /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{6,16}$/,
+    /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&_]{6,16}$/,
     "Password must contain at least one character, one digit, and one special character"
   ),
   // Link for regex: https://stackoverflow.com/questions/31175221/regex-pattern-for-philippine-phone-number:
@@ -84,11 +84,12 @@ export const EmployerSchema = z.object({
   password: z.string("Password must be a string").min(6, "Password must have at least 6 characters").max(16, "Password must have a maximum of 16 characters").regex(
   // Source - https://stackoverflow.com/a/21456918 | Posted by Srinivas, modified by community. See post 'Timeline' for change history | Retrieved 2026-02-09, License - CC BY-SA 4.0
 
-    /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{6,16}$/,
+    /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&_]{6,16}$/,
     "Password must contain at least one character, one digit, and one special character"
   ),
   phone: z.string("Phone Number must be a string").regex(/^(\+639)\d{9}$/, "Please enter a valid phone number, ex. +639..."),
-  industry: z.string("Industry must be a string").regex(/^[A-Za-z0-9 ]*$/, "Company should only include letters, digits, and spaces"),
+  industry: z.string("Industry must be a string"),
+  industryTitle: z.string("Industry title must be a string").regex(/^[A-Za-z ]+$/, "Skill must only contain letters and spaces").optional(),
   permit: z.string("Permit must be the URL string").optional()
 })
 

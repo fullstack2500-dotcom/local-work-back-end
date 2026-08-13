@@ -2,7 +2,7 @@ import { Document, ObjectId, Types, Schema, model } from "mongoose"
 
 export interface IApplication extends Document {
   job: Types.ObjectId,
-  worker: string,
+  worker: Types.ObjectId,
   location: string,
   timeline: string,
   status: string,

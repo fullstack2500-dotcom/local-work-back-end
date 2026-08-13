@@ -1,5 +1,9 @@
 import z from "zod";
+import WorkerAssignment from "../model/WorkerAssignment";
 
+// [These are the validators used for both workers & employers]:
+// [GET Requests]
+// - JobSchema: 
 
 // Job Schema:
 export const JobSchema = z.object({
@@ -32,6 +36,7 @@ export const JobSchema = z.object({
   startDate: z.string("Please enter a date").optional(),
   positions: z.int("Positions must be an integer"),
   category: z.string("Category must be a string"),
+  categoryTitle: z.string().optional(),
   applyBefore: z.string("Apply Before must be a string").date("Apply Before must be a date format"),
   email: z.string("Contact Email must be a string").email("Contact Email must be a valid email"),
   phone: z.string("Contact Phone must be a string").regex(/^(\+639)\d{9}$/, "Please enter a valid phone number, ex. +639...")
@@ -246,11 +251,13 @@ export const UpdateWorkerSchema = z.object({
   phoneNumber: z.string("Phone must be a valid phone number").regex(/^(\+639)\d{9}$/, "Please enter a valid phone number, ex. +639..."),
   location: z.string("Location must be a string"),
   jobTitle: z.string("Title must be string"),
-  yearsOfExperience: z.string("Experience must be a string").regex(/^[A-Za-z0-9 ]*$/, "Experience must only include letters, digits, and spaces").optional(),
+  yearsOfExperience: z.string("Experience must be a string").regex(/^[A-Za-z0-9' ]*$/, "Experience must only include letters, digits, and spaces").optional(),
   about_me: z.string("About Me must be a string"),
   availability: z.enum(["Full-Time", "Part-Time", "Contract", "Flexible"], "Availability must be either Full-Time, Part-Time, Contract, Flexible"),
   expected_salary: z.string("Expected Salary must be a string"),
-  skills: z.array(z.string("Skill must be a string"), "Skills must be an array")
+  skills: z.array(z.string("Skill must be a string"), "Skills must be an array"),
+  photo: z.string("Photo must be the string").optional(),
+  resume: z.string("Resume must be a string").optional()
 })
 
 // Update Employer:
@@ -258,7 +265,8 @@ export const UpdateEmployerSchema = z.object({
   _id: z.string("_id must be a string"),
   company: z.string("Company must be a string"),
   phone: z.string("Phone Number must be a string").regex(/^(\+639)\d{9}$/, "Please enter a valid phone number, ex. +639..."),
-  industry: z.string("Industry must be a string")
+  industry: z.string("Industry must be a string"),
+  industryTitle: z.string("Industry title must be a string").regex(/^[A-Za-z ]+$/, "Skill must only contain letters and spaces").optional(),
 })
 
 // View Message by Contact ID:
@@ -303,4 +311,163 @@ export const EmployerSchemaid = z.object({
 // Notification ID Schema:
 export const NotificationIDSchema = z.object({
   _id: z.string("_id must be a string")
+})
+
+
+
+// "Fake Job",
+//     "No Payment",
+//     "Harassment",
+//     "Fraud",
+//     "Other",
+
+// Reports Validator:
+export const reportValidator = z.object({
+  workerId: z.string(),
+  employerId: z.string(),
+  reportType: z.string(),
+
+  description: z
+    .string()
+    .min(10, "Description must be at least 10 characters")
+    .max(1000),
+
+  status: z
+    .enum([
+      "Pending",
+      "Under Review",
+      "Resolved",
+      "Rejected",
+    ])
+    .optional()
+});
+
+
+// Show completed assignments:
+export const CompletedAssignmentSchema = z.object({
+  employerId: z.string("Employer ID must be a string")
+})
+
+// Create New Worker Job:
+export const NewWorkerJobSchema = z.object({
+  jobCompleted: z.string("Job Completed ID must be a string"),
+  name: z.string("Worker Job must be a string")
+})
+
+// Create new Worker Assignment:
+export const NewWorkerAssignmentSchema = z.object({
+  employerId: z.string("Employer ID must be a string"),
+  title: z.string("Title must be a string"),
+
+  description: z.string("Description must be a string"),
+
+  targetWorkers: z.array(z.string("Target Worker must be a string"), "Target Workers must be an array"),
+  submitBefore: z.string("Submit Before must be a string"),
+
+  rejectLate: z.boolean("Reject Late must be a boolean").optional()
+})
+
+// Delete Worker Job:
+export const DeleteJobSchema = z.object({
+  name: z.string("Name must be a string"),
+  _id: z.string("Jobs Completed must be a string")
+})
+
+
+    // "Harassment",
+    // "Unprofessional Behavior",
+    // "No Show",
+    // "Poor Quality of Work",
+    // "Incomplete Work",
+    // "Property Damage",
+    // "Theft",
+    // "Fraud / Scam",
+    // "Requesting Payment Outside the Platform",
+    // "Fake Identity"
+
+// Reports Validator:
+export const reportWorkerValidator = z.object({
+  workerId: z.string("Worker ID must be a string"),
+  employerId: z.string("Employer ID must be a string"),
+  reportType: z.string(),
+
+  description: z
+    .string("Description must be string")
+    .min(10, "Description must be at least 10 characters")
+    .max(1000),
+
+  status: z
+    .enum([
+      "Pending",
+      "Under Review",
+      "Resolved",
+      "Rejected",
+    ])
+    .optional()
+});
+
+
+export const SubmittedFilesSchema = z.object({
+  _id: z.string("Worker Assignment ID must be a string"),
+  workerId: z.string("Worker ID must be a string")
+})
+
+
+export const UploadWorkerJobSchema = z.object({
+  workerId: z.string("Worker ID must be a string"),
+  workerAssignment: z.string("Worker Assignment is required"),
+  workerUpload: z.array(
+    z.object({
+      name: z.string("Worker Upload URL must be a string")
+    })
+  ),
+  workerDescription: z
+            .string("Worker description must be a string")
+            .min(1, "Worker Description must have at least one character")
+            .max(290, "Worker Description must not exceed 290 characters")
+            .optional(),
+  employerId: z.string("Employer ID must be a string"),
+  isLate: z.boolean("isLate must be a boolean")
+})
+
+export const UpdateWorkerJobSchema = z.object({
+  workerAssignment: z.string("Worker Assignment ID must be a string"),
+  workerId: z.string("Worker ID must be a string"),
+  status: z.enum(["submitted", "completed", "rejected"], "Status must be either submitted / completed / rejected")
+})
+
+// Source - https://stackoverflow.com/a/11794507
+// Posted by Engineer
+// Retrieved 2026-07-22, License - CC BY-SA 3.0
+
+export const DeleteWorkerJobSchema = z.object({
+  _id: z.string("Job Completed ID must be a string")
+})
+
+export const SubmittedJobsSchema = z.object({
+  employerId: z.string("Employer ID must be a string")
+})
+
+export const SubmittedJobsIDSchema = z.object({
+  workerId: z.string("Employer ID must be a string"),
+  workerAssignment: z.string("Worker Assignment ID must be a string"),
+  employerId: z.string("Employer ID must be a string")
+})
+
+
+export type ReportInput = z.infer<
+  typeof reportValidator
+>;
+
+export const UpdateReportSchema = z.object({
+  user: z.string("User ID is required"),
+  report: z.string("Report ID is required"),
+  status: z.enum(["Pending", "Under Review", "Resolved", "Rejected"]),
+  recipientId: z.string("Recipient ID is required")
+})
+
+export const DeleteReportSchema = z.object({
+  _id: z.string("Report ID must be a string").optional(),
+  employerId: z.string("Employer ID must be a string").optional(),
+  type: z.enum(["deleteById", "deleteAll"])
 })

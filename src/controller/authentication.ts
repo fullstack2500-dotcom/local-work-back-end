@@ -17,6 +17,8 @@ import stringComparison from "string-comparison";
 import AdminNotification from "../model/AdminNotification";
 import { WorkerRegisterPayload } from "../notif-payload/admin";
 import { getIO } from "../socket";
+import VerifiedWorker from "../model/VerifiedWorker";
+import JobsCompleted from "../model/JobsCompleted";
 
 const jaro = stringComparison.jaroWinkler;
 
@@ -171,14 +173,6 @@ export const WorkerRegister = async (req: Request, res: Response) => {
     const resume = files?.resume?.[0];
     const photo = files?.photo?.[0];
 
-    // REQUIRED RESUME CHECK
-    if (!resume) {
-      return res.status(400).json({
-        success: false,
-        message: "Resume is required",
-      });
-    }
-
     const payload = {
       ...req.body,
       resume: resume.filename,
@@ -221,6 +215,14 @@ export const WorkerRegister = async (req: Request, res: Response) => {
       resume: resumeFile,
       photo: photoFile,
     });
+
+        // REQUIRED RESUME CHECK
+    if (!resume) {
+      return res.status(400).json({
+        success: false,
+        message: "Resume is required",
+      });
+    }
 
     await newWorker.save();
 
@@ -290,20 +292,48 @@ export const EmployerRegister = async (req: Request, res: Response) => {
     });
   }
 
-  const { company, email, password, phone, industry } = validatedData.data;
+  const { company, email, password, phone, industry, industryTitle } = validatedData.data;
   const permitFile = req.file;
 
-  if (!permitFile) {
-    return res.status(400).json({
-      success: false,
-      message: "Business permit is required",
-    });
-  }
-
   const CompanyName = normalize(company);
-  const Industry = normalize(industry);
 
   try {
+    let finalIndustry = industry;
+
+    if (industryTitle?.trim()) {
+      const normalizedIndustryName = normalize(industryTitle);
+
+      const industries = await Industry.find({});
+
+      let bestMatch = null;
+      let bestScore = 0;
+
+      for (const i of industries) {
+        const score = jaro.similarity(
+          normalizedIndustryName,
+          normalize(i.title)
+        );
+
+        if (score > bestScore) {
+          bestScore = score;
+          bestMatch = i;
+        }
+      }
+
+      const THRESHOLD = 0.95;
+
+      if (bestMatch && bestScore >= THRESHOLD) {
+        finalIndustry = bestMatch._id.toString();
+      } else {
+        const createdIndustry = new Industry({
+          title: industryTitle,
+        });
+
+        await createdIndustry.save();
+
+        finalIndustry = createdIndustry._id.toString();
+      }
+    }
     // 1. fetch all companies (or you can optimize later with regex)
     const companies = await Company.find({});
 
@@ -329,8 +359,8 @@ export const EmployerRegister = async (req: Request, res: Response) => {
       finalCompanyName = bestMatch.name;
     } else {
       const created = new Company({
-        name: company, // keep original casing
-        industry: Industry
+        name: company,
+        industry: finalIndustry
       });
 
       await created.save();
@@ -342,12 +372,19 @@ export const EmployerRegister = async (req: Request, res: Response) => {
     const salt = await bcrypt.genSalt(12);
     const hash = await bcrypt.hash(password, salt);
 
+    if (!permitFile) {
+      return res.status(400).json({
+        success: false,
+        message: "Business permit is required",
+      });
+    }
+
     const newEmployer = new Employer({
       company: finalCompanyName,
       email,
       password: hash,
       phone,
-      industry: Industry,
+      industry: finalIndustry,
       permit: permitFile.filename,
     });
 
@@ -401,12 +438,12 @@ export const EmployerLogin = async (req: Request, res: Response) => {
 
     if (user.status === "deleted" || user.status === "pending" || user.status === "not_active") return res.status(400).json({ success: false, message: "Incorrect Email / Password" })
 
-    console.log({
-      id: user._id,
-      role: user.role,
-      company: user.company,
-      status: user.status
-    })
+    // console.log({
+    //   id: user._id,
+    //   role: user.role,
+    //   company: user.company,
+    //   status: user.status
+    // })
     
     const token = jwt.sign({ id: user._id, role: user.role, company: user.company, status: user.status }, process.env.JWT_SECRET as string, {
       expiresIn: '1h'
@@ -525,7 +562,7 @@ export const ViewSkills = async (req: Request, res: Response) => {
 // Display Dropdown Companies:
 export const DropdownComp = async (req: Request, res: Response) => {
   try {
-    const Industries = await Industry.find().sort({ createdAt: -1 })
+    const Industries = await Industry.find({ notAccepted: { $ne: true } }).sort({ createdAt: -1 })
 
     if (!Industries.length) return res.status(200).json({ success: true, Industries, message: "No Industries"})
 
@@ -546,17 +583,72 @@ export const DropdownComp = async (req: Request, res: Response) => {
 // Display Workers:
 export const Workers = async (req: Request, res: Response) => {
   try {
-    const Workers = await Worker.find({ status: "accepted" }).populate("location").sort({ createdAt: -1 })
-    if (!Workers.length) return res.status(200).json({ success: true, Workers, message: "No Workers Available" })
+    const workers = await Worker.find({ status: "active" }).sort({
+      createdAt: -1,
+    });
+
+    // Get all registered workers:
+    const registeredWorkers = await Worker.find({ status: { $ne: "deleted" }})
+
+    // Get the Average Rating:
+    const result = await Rating.aggregate([
+      {
+        $group: {
+          _id: null,
+          averageRating: { $avg: "$rating" }
+        }
+      }
+    ]);
+
+    const AverageRating = result.length ? result[0].averageRating : 0
+
+    const jobs = await JobsCompleted.aggregate([
+      {
+        $match: {
+          status: "COMPLETED",
+        },
+      },
+      {
+        $group: {
+          _id: {
+            workerId: "$workerId",
+            workerAssignment: "$workerAssignment",
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          workerId: "$_id.workerId",
+          workerAssignment: "$_id.workerAssignment",
+        },
+      },
+    ]);
+
+
+
+
+
+    // Get all verified worker IDs
+    const verifiedWorkers = await VerifiedWorker.find({}, "worker");
+
+    const verifiedIds = new Set(
+      verifiedWorkers.map((v) => v.worker.toString()) // there is an error in here
+    );
+
+    const workersWithVerification = workers.map((worker) => ({
+      ...worker.toObject(),
+      isVerified: verifiedIds.has(worker._id.toString()),
+    }));
 
     return res.status(200).json({
       success: true,
-      Workers
-    })
+      Workers: workersWithVerification,
+      RegisteredWorkers: registeredWorkers.length,
+      AverageRating,
+      jobs: jobs.length
+    });
   } catch (error) {
-    mainError(
-      error,
-      res
-    )
+    mainError(error, res);
   }
-}
+};
