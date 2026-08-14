@@ -34,7 +34,21 @@ import fs from "fs";
 import path from "path";
 import JobsCompleted from "../model/JobsCompleted";
 import { uploadJobs } from "../file/upload";
-import mongodb from "mongodb"
+
+
+// =========================================================================
+// = Protected Controllers:                                                =
+// = - These are controllers accessed by users that are logged.            =
+// =   specifically: (Workers && Employers)                                =
+// =                                                                       =
+// = List of Controllers:                                                  =
+// = [Name] - [Purpose]                                                    =
+// =                                                                       =
+// = Dashboard - Controller used for testing if middleware worked. [Test]  =
+// = IsUserLogged - Controller used for determining if the user is logged  =
+// =                                                                       =
+// =========================================================================
+
 
 const replaceFile = (
   oldFile: string | undefined,
@@ -62,7 +76,7 @@ const normalize = (s: string) =>
 
 const THRESHOLD = 0.95;
 
-// Dashboard:
+// [Global] - Controller used for testing if middleware worked:
 export const Dashboard = async (req: Request, res: Response) => {
   return res.status(200).json({
     success: true,
@@ -70,9 +84,7 @@ export const Dashboard = async (req: Request, res: Response) => {
   })
 }
 
-
-
-// Is the User Logged?:
+// [Global] - Controller used for determining if the user is logged:
 export const IsUserLogged = async (req: Request, res: Response) => {
   return res.status(200).json({
     success: true,
@@ -80,8 +92,7 @@ export const IsUserLogged = async (req: Request, res: Response) => {
   })
 }
 
-
-// User Notifications
+// [Worker & Employer] - Show User Notifications.
 export const UserNotifications = async (
   req: Request,
   res: Response
@@ -389,9 +400,29 @@ export const SubmittedJobsById = async (req: Request, res: Response) => {
       .populate("employerId")
       .populate("workerAssignment")
 
+    const WorkerAssignmentInfo = await WorkerAssignment.findOne({ _id: workerAssignment })
+
+    if (!WorkerAssignmentInfo) {
+      return res.status(404).json({
+        success: false,
+        info: "Worker Assignment not found"
+      })
+    }
+
+    const WorkerInfo = await Worker.findOne({ _id: workerId })
+
+    if (!WorkerInfo) {
+      return res.status(404).json({
+        success: false,
+        info: "Worker not found"
+      })
+    }
+
     return res.status(200).json({
       success: true,
-      SubmittedJobs
+      SubmittedJobs,
+      WorkerAssignmentInfo,
+      WorkerInfo
     })
   } catch (error) {
     mainError(error, res)

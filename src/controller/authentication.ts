@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
-import { WorkerRegisterSchema, EmployerSchema, LoginSchema, AdminSchema, AdminLoginSchema, OnlyAccepted } from "../validator/authentication";
+import { WorkerRegisterSchema, EmployerSchema, LoginSchema, AdminSchema, AdminLoginSchema, OnlyAccepted, SendEmailOTP } from "../validator/authentication";
 import jwt from "jsonwebtoken"
 import Worker from "../model/Worker";
 import { instanceErrors, mainError } from "../errors/showErrors";
@@ -19,6 +19,42 @@ import { WorkerRegisterPayload } from "../notif-payload/admin";
 import { getIO } from "../socket";
 import VerifiedWorker from "../model/VerifiedWorker";
 import JobsCompleted from "../model/JobsCompleted";
+import passport from 'passport';
+import { Strategy as LocalStrategy } from 'passport-local';
+import nodemailer from 'nodemailer';
+
+// Source: https://medium.com/@yshashi30/introduction-5f864164610d
+// Generate OTP
+
+// Source that resolved "Error: Invalid login: 535-5.7.8 Username and Password not accepted."
+// Link: https://laravelmail.com/blog/458-i-get-a-error-error-invalid-login-535-578-username/?srsltid=AfmBOor_5OgrHjOqJPiYk4AjAadRHtLMvX37IqiCdKApMZZre-Lbq7eI
+
+function generateOTP() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+
+
+// Source - https://stackoverflow.com/a/72279819
+// Posted by DariusV
+// Retrieved 2026-08-14, License - CC BY-SA 4.0 - Just a Guide.
+
+const SendEmail = async (to: string, subject: string, text: string) => {
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+
+  await transporter.sendMail({
+    from: process.env.EMAIL_OWNER,
+    to,
+    subject,
+    text,
+  });
+}
 
 const jaro = stringComparison.jaroWinkler;
 
@@ -35,14 +71,13 @@ export const displayFile = async (req: Request, res: Response) => {
   })
 }
 
-
-
 // basic XSS sanitization (strip HTML)
 const clean = (value: unknown): unknown => {
   if (typeof value !== "string") return value;
   return value.replace(/<[^>]*>?/gm, "").trim();
 };
 
+// Sanitization:
 const sanitize = (data: Record<string, any>) => {
   const out: Record<string, any> = {};
   for (const key in data) {
@@ -50,6 +85,39 @@ const sanitize = (data: Record<string, any>) => {
   }
   return out;
 };
+
+
+// [Global] - HandleOTP: This controller handles the OTP:
+export const HandleOTPVerification = async (req: Request, res: Response) => {
+  const validatedData = SendEmailOTP.safeParse(req.params)
+
+  if (!validatedData.success) {
+    return res.status(400).json({
+      success: false,
+      info: validatedData.error.issues[0].message
+    })
+  }
+  
+  const { email } = validatedData.data;
+
+  try {
+    const otp = generateOTP()
+
+    
+    // Source: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/setMinutes:
+    // Tested via: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/setMinutes && Online JS Compiler: https://www.programiz.com/javascript/online-compiler/
+    const newDate = new Date().setMinutes(new Date().getMinutes() + 1)
+    SendEmail(email, "Email Verification", `Your OTP is ${otp}. It will expire in 60 seconds.`)
+
+    console.log(new Date(), new Date(newDate))
+
+    return res.status(200).json({
+      success: true, otp, newDate
+    })
+  } catch (error) {
+    mainError(error, res)
+  }
+}
 
 export const createCompany = async (req: Request, res: Response) => {
   try {

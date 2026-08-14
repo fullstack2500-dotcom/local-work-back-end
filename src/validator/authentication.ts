@@ -1,5 +1,11 @@
 import z from "zod";
 
+
+// Send Email OTP:
+export const SendEmailOTP = z.object({
+  email: z.string("Email must be a string").email("Email must be a valid")
+})
+
 // Register the Admin:
 export const AdminSchema = z.object({
   name: z.string("Name must be a string").min(3, "Name must have at least 3 characters").max(35, "Name must have a maximum of 35 characters").regex(/^[A-Za-z0-9 ]*$/, "Name must only include letters, digits, and spaces"),
