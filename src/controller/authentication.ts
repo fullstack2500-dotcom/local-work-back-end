@@ -37,7 +37,7 @@ function generateOTP() {
 
 // Source - https://stackoverflow.com/a/72279819
 // Posted by DariusV
-// Retrieved 2026-08-14, License - CC BY-SA 4.0 - Just a Guide.
+// Retrieved 2026-08-14, License - CC BY-SA 4.0 - Just a Guide. But not fully implemented.
 
 const SendEmail = async (to: string, subject: string, text: string) => {
   const transporter = nodemailer.createTransport({
