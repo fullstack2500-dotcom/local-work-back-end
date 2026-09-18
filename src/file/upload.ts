@@ -191,6 +191,15 @@ export const uploadProfilePhoto = multer({
 // Retrieved 2026-07-17, License - CC BY-SA 4.0
 
 
+const permitStorageFromSource = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, path.join(__dirname, '../../uploads/permits'))
+  },
+  filename: function (req, file, cb) {
+    cb(null, file.fieldname + '-' + Date.now() + file.originalname)
+  }
+})
+
 const jobStorage = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, path.join(__dirname, '../../uploads/workerJobsCompleted'))
@@ -200,13 +209,32 @@ const jobStorage = multer.diskStorage({
     }
 });
 
+const reportStorage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, path.join(__dirname, '../../uploads/reports'))
+    },
+    filename: function (req, file, cb) {
+            cb(null, file.fieldname + '-' + Date.now() + file.originalname)
+            console.log(file.fieldname + '-' + Date.now() + file.originalname)
+    }
+});
+
 
 // https://medium.com/@mohsinansari.dev/handling-file-uploads-and-file-validations-in-node-js-with-multer-a3716ec528a3
 // https://medium.com/@mohsinansari.dev/handling-file-uploads-and-file-validations-in-node-js-with-multer-a3716ec528a3
 // https://www.geeksforgeeks.org/node-js/upload-files-to-local-public-folder-in-nodejs-using-multer/
 
+export const uploadPermits = multer({
+  storage: permitStorageFromSource,
+  limits: { fileSize: 1 * 1024 * 1024}
+}).single("permit")
 
 export const uploadJobs = multer({
     storage: jobStorage,
     limits: { fileSize: 1 * 1024 * 1024 }
 }).array("workerUpload");
+
+export const reportUpload = multer({
+  storage: reportStorage,
+  limits: { fileSize: 1 * 1024 * 1024 }
+}).array("submitEvidence")

@@ -97,7 +97,7 @@ export const EmployerSchema = z.object({
   industry: z.string("Industry must be a string"),
   industryTitle: z.string("Industry title must be a string").regex(/^[A-Za-z ]+$/, "Skill must only contain letters and spaces").optional(),
   permit: z.string("Permit must be the URL string").optional()
-})
+}, "The Employer Schema must be an object")
 
 
 

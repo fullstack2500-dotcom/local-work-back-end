@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { ApplicationSchema, CompanySchema, JobOverviewSchema, EmployerIdSchema, JobSchema, LocationSchema, TagSchema, employerIdSchema, ViewProfile, WorkerIDJob, JobIDJob, ApplicationStatusUpdate, OnlyAccepted, UpdateApplication, InterviewDate, CompanySchemaID, IsAppliedS, WorkerID, TimeLineStatus, UpdateWorkerSchema, UpdateEmployerSchema, EmployerProfileS, RatingSchema, PostContacts, EmployerSchemaid, SkillID, PostMessage, ViewMessageByContactID, NotificationIDSchema, reportValidator, reportWorkerValidator, UpdateReportSchema, DeleteReportSchema, NewWorkerAssignmentSchema, UploadWorkerJobSchema, UpdateWorkerJobSchema, SubmittedFilesSchema, DeleteWorkerJobSchema, SubmittedJobsSchema, SubmittedJobsIDSchema, CompletedAssignmentSchema, NewWorkerJobSchema, DeleteJobSchema } from "../validator/protected";
+import { ApplicationSchema, CompanySchema, JobOverviewSchema, EmployerIdSchema, JobSchema, LocationSchema, TagSchema, employerIdSchema, ViewProfile, WorkerIDJob, JobIDJob, ApplicationStatusUpdate, OnlyAccepted, UpdateApplication, InterviewDate, CompanySchemaID, IsAppliedS, WorkerID, TimeLineStatus, UpdateWorkerSchema, UpdateEmployerSchema, EmployerProfileS, RatingSchema, PostContacts, EmployerSchemaid, SkillID, PostMessage, ViewMessageByContactID, NotificationIDSchema, reportValidator, reportWorkerValidator, UpdateReportSchema, DeleteReportSchema, NewWorkerAssignmentSchema, UploadWorkerJobSchema, UpdateWorkerJobSchema, SubmittedFilesSchema, DeleteWorkerJobSchema, SubmittedJobsSchema, SubmittedJobsIDSchema, CompletedAssignmentSchema, NewWorkerJobSchema, DeleteJobSchema, GetReportDetailsSchema, StatusReasonSchema, ViewEmployerResponsesSchema } from "../validator/protected";
 import Job from "../model/Job";
 import { filterXSS } from "xss";
 import Application from "../model/Application";
@@ -20,7 +20,7 @@ import Company from "../model/Company";
 import AdminNotification from "../model/AdminNotification";
 import UserNotification from "../model/UserNotification";
 import { createJobPayload, NewApplicationPayload, NewReportPayload } from "../notif-payload/admin";
-import { NewMessagePayload, PostContactPayload, UpdateApplicationPayload, NewApplicationPayloadEmployer, NewReportPayloadEmployer, UpdateReportPayload } from "../notif-payload/user";
+import { NewMessagePayload, PostContactPayload, UpdateApplicationPayload, NewApplicationPayloadEmployer, NewReportPayloadEmployer, UpdateReportPayload, WorkerAssignmentPayload, UploadWorkerJobPayload, UpdateWorkerJobWorker, UpdateWorkerJobCompleted, UpdateWorkerJobRejected } from "../notif-payload/user";
 import { getIO } from "../socket";
 import Message from "../model/Message";
 import stringComparison from "string-comparison";
@@ -33,29 +33,17 @@ import WorkerAssignment from "../model/WorkerAssignment";
 import fs from "fs";
 import path from "path";
 import JobsCompleted from "../model/JobsCompleted";
-import { uploadJobs } from "../file/upload";
+import { uploadJobs, reportUpload } from "../file/upload";
+import { worker } from "../middleware/roles";
+import Admin from "../model/Admin";
+import Reason from "../model/Reason";
 
 
-// =========================================================================
-// = Protected Controllers:                                                =
-// = - These are controllers accessed by users that are logged.            =
-// =   specifically: (Workers && Employers)                                =
-// =                                                                       =
-// = List of Controllers:                                                  =
-// = [Name] - [Purpose]                                                    =
-// =                                                                       =
-// = Dashboard - Controller used for testing if middleware worked. [Test]  =
-// = IsUserLogged - Controller used for determining if the user is logged  =
-// =                                                                       =
-// =========================================================================
-
-
-const replaceFile = (
-  oldFile: string | undefined,
-  newFile: Express.Multer.File | undefined,
-  folder: string
-) => {
-  if (!newFile) return oldFile;
+// Replace File Function:
+const replaceFile = (oldFile: string | undefined, newFile: Express.Multer.File | undefined, folder: string) => {
+  if (!newFile) {
+    return oldFile;
+  }
 
   if (oldFile) {
     const oldPath = path.join(folder, oldFile);
@@ -68,15 +56,14 @@ const replaceFile = (
   return newFile.filename;
 };
 
-
+// Use the string comparison jaro winkler:
 const jaro = stringComparison.jaroWinkler;
 
-const normalize = (s: string) =>
-  s.toLowerCase().replace(/[^\w\s]/g, "").trim();
-
+// Normalize the string and use a threshold of 95% accuracy:
+const normalize = (s: string) => s.toLowerCase().replace(/[^\w\s]/g, "").trim();
 const THRESHOLD = 0.95;
 
-// [Global] - Controller used for testing if middleware worked:
+// [Global: Dashboard] -  Controller used for testing if middleware worked:
 export const Dashboard = async (req: Request, res: Response) => {
   return res.status(200).json({
     success: true,
@@ -84,7 +71,7 @@ export const Dashboard = async (req: Request, res: Response) => {
   })
 }
 
-// [Global] - Controller used for determining if the user is logged:
+// [Global: IsUserLogged] - Controller used for determining if the user is logged:
 export const IsUserLogged = async (req: Request, res: Response) => {
   return res.status(200).json({
     success: true,
@@ -92,15 +79,12 @@ export const IsUserLogged = async (req: Request, res: Response) => {
   })
 }
 
-// [Worker & Employer] - Show User Notifications.
-export const UserNotifications = async (
-  req: Request,
-  res: Response
-) => {
+// [Worker & Employer: UserNotifications] - Show User Notifications.
+export const UserNotifications = async (req: Request, res: Response) => {
   try {
-    const notifications = await UserNotification.find({
-      targetUsers: req.user.id,
-    }).sort({ createdAt: -1 });
+    const notifications = await UserNotification
+                                  .find({ targetUsers: req.user.id})
+                                  .sort({ createdAt: -1 });
 
     return res.status(200).json({
       success: true,
@@ -111,8 +95,7 @@ export const UserNotifications = async (
   }
 };
 
-
-// Mark as Read:
+// [Worker & Employer: MarkAsRead] - This marks the notification as read.
 export const MarkAsRead = async (req: Request, res: Response) => {
   const validatedData = NotificationIDSchema.safeParse({ _id: req.params._id })
 
@@ -147,79 +130,13 @@ export const MarkAsRead = async (req: Request, res: Response) => {
   }
 }
 
-
-// Report Worker:
-export const ReportWorkerController = async (req: Request, res: Response) => {
-
-  const io = getIO()
-
-  const validatedData = reportWorkerValidator.safeParse({
-    ...req.body, employerId: req.user.id
-  })
-
-  if (!validatedData.success) {
-    return res.status(400).json({
-      success: false,
-      message: validatedData.error.issues[0].message
-    })
-  }
-
-  // console.log(validatedData.data)
-
-  const { reportType, workerId, employerId, description } = validatedData.data;
-
-  try {
-    const sanitizedReportType = filterXSS(reportType, {
-      whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true
-    })
-
-    const sanitizedDescription = filterXSS(description, {
-      whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true
-    })
-
-    const newReport = new ReportWorker({
-      workerId,
-      employerId,
-      reportType: sanitizedReportType,
-      description: sanitizedDescription
-    })
-
-    await newReport.save();
-
-    const notification = await AdminNotification.create(
-      NewReportPayload(reportType, new Date())
-    );
-
-    io.emit("notification:new", notification)
-
-    return res.status(201).json({
-      success: true,
-      newReport
-    })
-  } catch (error) {
-    instanceErrors(error, res)
-  }
-}
-
-
-
-
-
-
-
-
-
-
-// [Worker & Employer] - WorkerAssignments - Get Worker Assignments:
+// [Worker & Employer: WorkerAssignments] - This displays the worker assignments based on targetWorkers for worker and employerId for employer.:
 export const WorkerAssignments = async (req: Request, res: Response) => {
-  const submittedFilter = req.params;
-
   try {
     let workerAssignments: any = [];
-    let workerAssignmentsByEmp = [];
 
     if (req.user.role === "worker") {
-      const workerAssignment = await WorkerAssignment.find({ targetWorkers: req.user.id }).sort({ createdAt: -1 }).populate("employerId")
+      const workerAssignment = await WorkerAssignment.find({ targetWorkers: { _id: req.user.id } }).sort({ createdAt: -1 }).populate("employerId")
 
       for (let i = 0; i < workerAssignment.length; i++) {
         const jobsCompleted = await JobsCompleted.findOne({ workerId: req.user.id, workerAssignment: workerAssignment[i]._id, submitted: true, status: "COMPLETED" })
@@ -279,7 +196,7 @@ export const WorkerAssignments = async (req: Request, res: Response) => {
   }
 }
 
-// [Employer] - CompletedAssignments - Get Completed Assignments by workerId / employerId:
+// [Employer: CompletedAssignments] - Get Completed Assignments by employerId:
 export const CompletedAssignments = async (req: Request, res: Response) => {
   const validatedData = CompletedAssignmentSchema.safeParse({ employerId: req.user.id })
 
@@ -293,7 +210,9 @@ export const CompletedAssignments = async (req: Request, res: Response) => {
   const employerId = validatedData.data.employerId
 
   try {
-    const CompletedJobs = await JobsCompleted.find({ employerId, submitted: true, status: "COMPLETED" }).sort({ createdAt: -1 }).populate("targetWorkers", "_id name")
+    const CompletedJobs = await JobsCompleted
+                                  .find({ employerId, submitted: true, status: "COMPLETED" })
+                                  .sort({ createdAt: -1 }).populate("targetWorkers", "_id name")
 
     return res.status(200).json({
       success: true,
@@ -304,12 +223,13 @@ export const CompletedAssignments = async (req: Request, res: Response) => {
   }
 }
 
-// [Worker] - WorkerAssignmentsById - Get Worker Assignments by ID:
+// [Worker: SubmittedFiles] - Get Worker Assignments by ID:
 export const SubmittedFiles = async (req: Request, res: Response) => {
   const validatedData = SubmittedFilesSchema.safeParse({ ...req.params, workerId: req.user.id })
 
   if (!validatedData.success) {
     console.error(validatedData.error.issues[0].message)
+
     return res.status(400).json({
       success: false,
       message: validatedData.error.issues[0].message
@@ -330,7 +250,7 @@ export const SubmittedFiles = async (req: Request, res: Response) => {
   }
 }
 
-// [Employer] - SubmittedJobs - Get the submitted jobs of the workers:
+// [Employer: SubmittedJobs] - Get the submitted jobs of the workers:
 export const SubmittedJobs = async (req: Request, res: Response) => {
   const validatedData = SubmittedJobsSchema.safeParse({ employerId: req.user.id })
 
@@ -344,6 +264,7 @@ export const SubmittedJobs = async (req: Request, res: Response) => {
   let SubmittedJobs = []
 
   try {
+
     // Source - https://stackoverflow.com/a/12822773
     // Posted by JohnnyHK
     // Retrieved 2026-08-12, License - CC BY-SA 3.0
@@ -428,12 +349,6 @@ export const SubmittedJobsById = async (req: Request, res: Response) => {
     mainError(error, res)
   }
 }
-
-// <h1>Worker Name has submitted ...</h1>
-// Description
-// [View Details]
-
-// []
 
 // [Worker] - NewWorkerJob - Create New Worker Job:
 export const NewWorkerJob = async (req: Request, res: Response) => {
@@ -539,6 +454,8 @@ export const DeleteWorkerJob = async (req: Request, res: Response) => {
 
 // [Employer] - NewWorkerAssignment - Employer creates new worker assignment:
 export const NewWorkerAssignment = async (req: Request, res: Response) => {
+  const io = getIO()
+
   const validatedData = NewWorkerAssignmentSchema.safeParse({
     ...req.body, employerId: req.user.id
   });
@@ -577,11 +494,26 @@ export const NewWorkerAssignment = async (req: Request, res: Response) => {
       rejectLate
     })
 
+    const employer = await Employer.findOne({ _id: employerId })
+
+    if (!employer) return res.status(404).json({ success: false })
+
     if (new Date(submitBefore) <= new Date()) {
       return res.status(400).json({
         success: false,
         info: "Invalid date."
       })
+    }
+
+    for (let index = 0; index < targetWorkers.length; index++) {
+      const notification = await UserNotification.create(
+        WorkerAssignmentPayload(employer.email, new Date(), targetWorkers[index]._id)
+      )
+
+      io.to(targetWorkers[index]._id.toString()).emit(
+        "notification:worker:new",
+        notification
+      )
     }
 
     await newWorkerAssignment.save();
@@ -665,92 +597,42 @@ export const DeleteNotification = async (req: Request, res: Response) => {
 
 
 // Reports:
-export const GetReports = async (
-  req: Request,
-  res: Response
-) => {
-  const reports = await Report.find({
-    workerId: req.user.id,
-  })
-    .populate("employerId", "email")
-    .sort({
-      createdAt: -1,
-    });
-
-  res.json(reports);
-};
-
-// Reports:
-export const GetReportsEmployer = async (
-  req: Request,
-  res: Response
-) => {
+export const GetReports = async (req: Request, res: Response) => {
   try {
-    const reports = await Report.find({
-      employerId: req.user.id,
-    })
-      .populate("workerId")
-      .sort({
-        createdAt: -1,
-      });
+    const reports = await Report.find({ sentBy: req.user.id }).sort({ createdAt: -1 })
 
-    res.json(reports);
+    return res.status(200).json({
+      success: true,
+      reports
+    })
   } catch (error) {
     mainError(error, res)
   }
 };
 
 
+// [Worker & Employer]: GetReportDetails - View report details:
+export const GetReportDetails = async (req: Request, res: Response) => {
+  const validatedData = GetReportDetailsSchema.safeParse(req.params)
 
-// Update Report Status:
-export const UpdateReport = async (
-  req: Request,
-  res: Response
-) => {
-  
-  const io = getIO()
+  if (validatedData.error) {
+    console.log(JSON.parse(validatedData.error.message))
 
-  const validatedStatus = UpdateReportSchema.safeParse({
-    user: req.user.id,
-    report: req.body.report,
-    status: req.body.status,
-    recipientId: req.body.recipientId
-  })
-
-  if (!validatedStatus.success) {
     return res.status(400).json({
       success: false,
-      message: validatedStatus.error.issues[0].message
+      errData: JSON.parse(validatedData.error.message)
     })
   }
 
-  const { user, report, status, recipientId } = validatedStatus.data
+  const { _id } = validatedData.data;
 
   try {
-    const ReportInfo = await Report.findOneAndUpdate({ _id: report }, { status })
-    const employer = await Employer.findOne({ _id: user })
-
-    if (!employer) return res.status(404).json({ success: false, message: "Employer not found" })
-
-    if (!ReportInfo) {
-      return res.status(404).json({
-        success: false,
-        message: "Report not found"
-      })
-    }
-
-    const notification = await UserNotification.create(
-      UpdateReportPayload(status, employer._id.toString(), new Date(), recipientId)
-    )
-
-    io.to(recipientId.toString()).emit(
-      "notification:worker:new",
-      notification
-    )
+    const report = await Report.findOne({ _id })
+    if (!report) return res.status(404).json({ success: false, info: "Report not found" })
 
     return res.status(200).json({
       success: true,
-      report: ReportInfo
+      report
     })
   } catch (error) {
     mainError(error, res)
@@ -758,17 +640,62 @@ export const UpdateReport = async (
 }
 
 
-// Create new report:
+
+// Update Report Status:
+export const UpdateReport = async (req: Request, res: Response) => {
+  const io = getIO()
+
+  const validatedStatus = UpdateReportSchema.safeParse(req.body)
+
+  if (!validatedStatus.success) return res.status(400).json({ success: false, message: validatedStatus.error.issues[0].message })
+  const { reportId, reportType, description } = validatedStatus.data
+
+  try {
+    const ReportInfo = await Report.findOne({ _id: reportId })
+
+    if (!ReportInfo) return res.status(404).json({ success: false, info: "Report not found" })
+
+    if (reportType === "") {
+      await Report.findOneAndUpdate({ _id: reportId }, { reportType: ReportInfo.reportType })
+    } else {
+      await Report.findOneAndUpdate({ _id: reportId }, { reportType })
+    }
+
+    if (description === "") {
+      await Report.findOneAndUpdate({ _id: reportId }, { description: ReportInfo.description })
+    } else {
+      await Report.findOneAndUpdate({ _id: reportId }, { description})
+    }
+
+    return res.status(200).json({
+      success: true,
+      info: "Report updated"
+    })
+  } catch (error) {
+    mainError(error, res)
+  }
+}
+
+
+// [Worker & Employer] - Create new report:
 export const NewReport = async (req: Request, res: Response) => {
 
   const io = getIO();
 
-  req.body.workerId = req.user.id
+  if (req.user.role === "worker") {
+    req.body.workerId = req.user.id
+  } else {
+    req.body.employerId = req.user.id
+  }
+
+  req.body.sentBy = req.user.id
+  req.body.reporter = req.user.role
 
   try {
     const validatedReport = reportValidator.safeParse(req.body);
 
     if (!validatedReport.success) {
+      console.log(validatedReport.error)
       return res.status(400).json({
         message: "Invalid report data",
         errors: validatedReport.error.flatten(),
@@ -776,30 +703,52 @@ export const NewReport = async (req: Request, res: Response) => {
     }
 
 
-    const { workerId, employerId, reportType, description } =
-      validatedReport.data;
-
-    const worker = await Worker.findOne({ _id: workerId })
-    if (!worker) return res.status(404).json({ success: false, message: "Worker not found" })
+    const { workerId, employerId, reportType, description, sentBy, submitEvidence, reporter, reportCategory } = validatedReport.data;
 
     const sanitizedReportType = filterXSS(reportType, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
     const sanitizedDescription = filterXSS(description, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
 
-    const newReport = await Report.create({
+    const newReport = new Report({
       workerId,
       employerId,
       reportType: sanitizedReportType,
       description: sanitizedDescription,
+      sentBy,
+      submitEvidence,
+      reporter,
+      reportCategory
     });
 
-    const notification = await UserNotification.create(
-      NewReportPayloadEmployer(worker.name, employerId, new Date())
-    )
+    await newReport.save()
 
-    io.to(employerId.toString()).emit(
-      "notification:employer:new",
-      notification
-    );
+    const worker = await Worker.findOne({ _id: workerId })
+    if (!worker) return res.status(404).json({ success: false, message: "Worker not found" })
+
+    const employer = await Employer.findOne({ _id: employerId })
+    if (!employer) return res.status(404).json({ success: false, message: "Worker not found" })
+
+
+    if (reporter === "worker") {
+      const notification = NewReportPayload(worker.email, employer.email, reportType, reportCategory, new Date())
+      const Administrator = new AdminNotification(notification)
+
+      await Administrator.save()
+
+      io.emit(
+        "notification:new",
+        notification
+      );
+    } else {
+      const notification = NewReportPayload(employer.email, worker.email, reportType, reportCategory, new Date())
+      const Administrator = new AdminNotification(notification)
+
+      await Administrator.save()
+
+      io.emit(
+        "notification:new",
+        notification
+      );
+    }
 
 
     return res.status(201).json({
@@ -814,6 +763,26 @@ export const NewReport = async (req: Request, res: Response) => {
     });
   }
 };
+
+// [Worker & Employer] - Upload the report evidence:
+export const ReportEvidence = async (req: Request, res: Response) => {
+  console.log("Executing Report Evidence Controller")
+
+  reportUpload(req, res, (err) => {
+    if (err) {
+      console.log(err)
+      return res.status(400).json({
+        success: false,
+        errors: err
+      })
+    }
+
+    return res.status(201).json({
+      success: true,
+      filename: req.files
+    })
+  })
+}
 
 
 // Delete Reports:
@@ -887,6 +856,13 @@ export const newApplication = async (req: Request, res: Response) => {
         success: false,
         message: "Job does not exist",
       });
+    }
+
+    if (new Date(jobData.applyBefore) < new Date()) {
+      return res.status(400).json({
+        success: false,
+        info: "This job is already expired. Please try another job."
+      })
     }
 
     if (jobData.status !== "ACCEPTED") {
@@ -1754,6 +1730,8 @@ export const UpdateWorker = async (req: Request, res: Response) => {
 
 // [Worker] - UploadWorkerJob: This uploads the worker's jobs completed, Source: https://medium.com/@mohsinansari.dev/handling-file-uploads-and-file-validations-in-node-js-with-multer-a3716ec528a3
 export const UploadWorkerJob = async (req: Request, res: Response) => {
+  const io = getIO();
+  
   const validatedData = UploadWorkerJobSchema.safeParse({
     ...req.body, workerId: req.user.id, ...req.params
   });
@@ -1836,21 +1814,51 @@ export const UploadWorkerJobFile = async (req: Request, res: Response) => {
   })
 }
 
+// [Worker] - ViewEmployerResponses: This will show the responses of the employer with regards of their application
+export const ViewEmployerResponses = async (req: Request, res: Response) => {
+  const validatedData = ViewEmployerResponsesSchema.safeParse(req.params)
+
+  if (!validatedData.success) {
+    return res.status(400).json({
+      success: false,
+      info: validatedData.error
+    })
+  }
+
+  const { applicationId } = validatedData.data;
+
+  try {
+    const EmployerResponses = await Reason.find({ applicationId }).sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      EmployerResponses
+    })
+  } catch (error) {
+    mainError(error, res)
+  }
+}
+
+
+
 // [Worker & Employer] - UpdateWorkerJob: This updates the status of jobs completed either worker submits / employer marks their work as completed
 export const UpdateWorkerJob = async (req: Request, res: Response) => {
+  const io = getIO();
+
   const validatedData = UpdateWorkerJobSchema.safeParse(
-    req.user.role === "worker" ? { ...req.body, workerId: req.user.id }
-                               : req.body
+    req.user.role === "worker" ? { ...req.body, workerId: req.user.id, workerName: req.user.name }
+                               : { ...req.body, employerId: req.user.id, email: req.user.email }
   )
 
   if (!validatedData.success) {
+    console.log(validatedData.error)
     return res.status(400).json({
       success: false,
       message: validatedData.error.issues[0].message
     })
   }
 
-  const { workerAssignment, workerId, status } = validatedData.data
+  const { workerAssignment, workerId, email, employerId, workerName, status } = validatedData.data
   let isLate = null
 
   try {
@@ -1887,12 +1895,28 @@ export const UpdateWorkerJob = async (req: Request, res: Response) => {
       }
       
       await JobsCompleted.updateMany({ workerAssignment, workerId }, { status: "PENDING", submitted: true, isLate })
-    } else if (status === "completed") {
+
+      const notification = await UserNotification.create(
+        UpdateWorkerJobWorker(workerName, new Date(), employerId)
+      )
+
+      io.to(employerId.toString()).emit("notification:employer:new", notification)
+    } 
+    
+    // If the status is completed:
+    else if (status === "completed") {
       await JobsCompleted.updateMany({ workerAssignment, workerId }, { status: "COMPLETED" })
+      const notification = await UserNotification.create(UpdateWorkerJobCompleted(email, new Date(), workerId))
+      io.to(workerId.toString()).emit("notification:worker:new", notification)
+
+    // If the status is rejected:
     } else {
       await JobsCompleted.updateMany({ workerAssignment, workerId }, { status: "REJECTED", submitted: false })
+      const notification = await UserNotification.create(UpdateWorkerJobRejected(email, new Date(), workerId))
+      io.to(workerId.toString()).emit("notification:worker:new", notification)
     }
 
+    // Return Success:
     return res.status(200).json({
       success: true,
       message: `Job Successfully Updated!`
@@ -2682,6 +2706,45 @@ export const CompanyDetails = async (req: Request, res: Response) => {
   }
 }
 
+// [Employer]: SubmitReason = The purpose of this is for employers to submit reason of accepted/rejected job:
+export const SubmitReason = async (req: Request, res: Response) => {
+  const validatedData = StatusReasonSchema.safeParse({ ...req.body, employerId: req.user.id })
+
+  if (!validatedData.success) {
+    return res.status(400).json({
+      success: false,
+      info: validatedData.error.cause
+    })
+  }
+
+  const { workerId, employerId, jobId, applicationId, title, description } = validatedData.data;
+
+  try {
+    const filteredTitle = filterXSS(title, {
+      whiteList: {},
+      stripIgnoreTag: true,
+      stripIgnoreTagBody: true
+    })
+
+    const filteredDescription = filterXSS(description, {
+      whiteList: {},
+      stripIgnoreTag: true,
+      stripIgnoreTagBody: true
+    })
+
+    const newSubmitReason = new Reason({ workerId, employerId, jobId, applicationId, title: filteredTitle, description: filteredDescription });
+
+    await newSubmitReason.save()
+
+    return res.status(201).json({
+      success: true,
+      submitReason: newSubmitReason
+    })
+    
+  } catch (error) {
+    instanceErrors(error, res)
+  }
+}
 
 
 // View Workers:

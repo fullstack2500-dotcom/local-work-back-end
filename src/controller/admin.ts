@@ -41,7 +41,6 @@ import { JobPostPayload } from "../notif-payload/user";
 import Admin from "../model/Admin";
 import { getIO } from "../socket";
 import Report from "../model/Report";
-import ReportWorker from "../model/ReportWorker";
 
 
 // Profile:
@@ -79,7 +78,7 @@ export const Profile = async (req: Request, res: Response) => {
 
 
 // Update Reported Worker Status:
-export const UpdateReportWorkerStatus = async (req: Request, res: Response) => {
+export const UpdateReportStatus = async (req: Request, res: Response) => {
   const validatedData = UpdateReportSchema.safeParse(req.body)
 
   if (!validatedData.success) {
@@ -92,7 +91,7 @@ export const UpdateReportWorkerStatus = async (req: Request, res: Response) => {
   const { _id, status } = validatedData.data;
 
   try {
-    await ReportWorker.updateOne({ _id }, { status })
+    await Report.updateOne({ _id }, { status })
 
     return res.status(200).json({
       success: true
@@ -117,7 +116,7 @@ export const Dashboard = async (req: Request, res: Response) => {
 
     const VERIFIED_WORKERS = await VerifiedWorker.find();
 
-    const REPORT_WORKERS = await ReportWorker.find()
+    const REPORT_WORKERS = await Report.find()
 
     return res.status(200).json({
       success: true,
@@ -502,9 +501,8 @@ export const DeleteWorkerEmployer = async (req: Request, res: Response) => {
 // Reports:
 export const Reports = async (req: Request, res: Response) => {
   try {
-    const Skills = await Skill.find().sort({ createdAt: -1 }) || [];
     const Industries = await Industry.find().sort({ createdAt: -1 }) || [];
-    const ReportedWorkers = await ReportWorker.find().sort({ createdAt: -1 }) || [];
+    const ReportedWorkers = await Report.find().sort({ createdAt: -1 });
 
     const workerGrowth = await Worker.aggregate([
       {

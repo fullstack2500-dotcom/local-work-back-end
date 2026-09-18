@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { Dashboard, UploadWorkerProfilePhoto, IsUserLogged, LogOut, MarkContactAsRead, viewPostedJobs, getCityProvinceList, viewJobOverview, AddLocation, AddTag, createJob, viewJobs, newApplication, viewApplications, WithdrawApplication, viewApplicationsEmployer, UpdateApp, UpdateInterview, CompanyDetails, ViewWorkers, IsApplied, Locations, ViewProfileController, UpdateWorker, UpdateEmployer, EmployerProfileController, ReviewUpload, PostContact, OpenPositionsTotalApplications, GetIndustries, UploadEmployerProfilePhoto, ViewContacts, ViewMessage, NewMessage, ViewContactsEmployer, UserNotifications, MarkAsRead, DeleteNotification, MarkAllAsRead, NewReport, ReportWorkerController, GetReports, GetReportsEmployer, UpdateReport, DeleteReport, NewWorkerAssignment, WorkerAssignments, UploadWorkerJob, UploadWorkerJobFile, UpdateWorkerJob, SubmittedFiles, SubmittedJobs, SubmittedJobsById, CompletedAssignments, NewWorkerJob, DeleteWorkerJob, DeleteWorkerJobFile } from "../controller/protected";
+import { Dashboard, UploadWorkerProfilePhoto, IsUserLogged, LogOut, MarkContactAsRead, viewPostedJobs, getCityProvinceList, viewJobOverview, AddLocation, AddTag, createJob, viewJobs, newApplication, viewApplications, WithdrawApplication, viewApplicationsEmployer, UpdateApp, UpdateInterview, CompanyDetails, ViewWorkers, IsApplied, Locations, ViewProfileController, UpdateWorker, UpdateEmployer, EmployerProfileController, ReviewUpload, PostContact, OpenPositionsTotalApplications, GetIndustries, UploadEmployerProfilePhoto, ViewContacts, ViewMessage, NewMessage, ViewContactsEmployer, UserNotifications, MarkAsRead, DeleteNotification, MarkAllAsRead, NewReport, GetReports, UpdateReport, DeleteReport, NewWorkerAssignment, WorkerAssignments, UploadWorkerJob, UploadWorkerJobFile, UpdateWorkerJob, SubmittedFiles, SubmittedJobs, SubmittedJobsById, CompletedAssignments, NewWorkerJob, DeleteWorkerJob, DeleteWorkerJobFile, GetReportDetails, ReportEvidence, SubmitReason, ViewEmployerResponses } from "../controller/protected";
 import authorized from "../middleware/authorized";
 import { employers, worker, admin } from "../middleware/roles";
 import { uploadProfilePhoto, uploadFiles, uploadEmployerPermit } from "../file/upload";
@@ -15,6 +15,11 @@ router.get("/Location", authorized, employers, getCityProvinceList);
 router.get("/notifications", authorized, UserNotifications)
 router.get("/message/:_id", authorized, ViewMessage)
 router.get("/worker-assignments", authorized, WorkerAssignments)
+
+// GET [Worker & Employer]:
+router.get("/notifications", authorized, UserNotifications)
+router.get("/reports", authorized, GetReports)
+router.get("/report/:_id", authorized, GetReportDetails)
 
 // PATCH [Global]:
 router.patch("/markAsRead/:_id", authorized, MarkAsRead)
@@ -40,10 +45,9 @@ router.get("/viewJobs", authorized, worker, viewJobs)
 router.get("/isApplied/:job", authorized, worker, IsApplied)
 router.get("/worker/profile", authorized, worker, ViewProfileController)
 router.get("/contacts", authorized, worker, ViewContacts)
-router.get("/reports", authorized, worker, GetReports)
-router.get("/employer/reports", authorized, employers, GetReportsEmployer)
 
 router.get("/jobs/submitted/:_id", authorized, worker, SubmittedFiles)
+router.get("/responses/:applicationId", authorized, worker, ViewEmployerResponses)
 
 
 // GET Requests [Employers]:
@@ -72,7 +76,8 @@ router.get("/worker/assignment/:workerId/:employerId/:workerAssignment", authori
 // // POST Requests [Workers]:
 router.post("/createApplication", authorized, worker, newApplication)
 router.post("/rating", authorized, worker, ReviewUpload)
-router.post("/report", authorized, worker, NewReport)
+router.post("/report/worker", authorized, worker, NewReport)
+router.post("/report/employer", authorized, employers, NewReport)
 
 router.post("/upload/worker/job/:employerId", authorized, worker, UploadWorkerJob)
 router.post("/upload/worker/jobFile", authorized, worker, UploadWorkerJobFile)
@@ -86,8 +91,10 @@ router.post("/addTag", authorized, employers, AddTag)
 router.post("/contact", authorized, employers, PostContact)
 
 router.post("/worker/assignment", authorized, employers, NewWorkerAssignment)
+router.post("/application/reason", authorized, employers, SubmitReason)
 
-router.post("/report/worker", authorized, employers, ReportWorkerController)
+// POST Requests [Workers & Employers]:
+router.post("/report/submit/evidence", authorized, ReportEvidence)
 
 
 // PUT [Workers]:
@@ -132,8 +139,8 @@ router.put(
   UpdateEmployer
 );
 
-// PATCH [Employers]:
-router.patch("/employer/report", authorized, uploadEmployerPermit.single("permit"), employers, UpdateReport)
+// PUT [Workers & Employers]:
+router.put("/report", authorized, UpdateReport)
 
 // DELETE [Workers]:
 router.delete("/worker/job/file/:_id", authorized, worker, DeleteWorkerJobFile)

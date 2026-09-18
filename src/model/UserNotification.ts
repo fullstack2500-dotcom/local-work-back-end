@@ -1,13 +1,13 @@
 import { Document, model, Schema, Types } from "mongoose";
 
 export interface IUserNotification extends Document {
-  type: "job_posted" | "application" | "verification" | "contact" | "report";
+  type: "job_posted" | "application" | "verification" | "contact" | "report" | "worker_assignment";
 
   title: string;
   description: string;
   read: boolean;
 
-  category: "job" | "contact" | "account" | "report";
+  category: "job" | "contact" | "account" | "report" | "worker_assignment";
 
   // targeting
   audience: "all" | "workers" | "employers" | "specific";
@@ -22,7 +22,7 @@ const UserNotificationSchema = new Schema(
   {
     type: {
       type: String,
-      enum: ["job_posted", "application", "verification", "contact", "report"],
+      enum: ["job_posted", "application", "verification", "contact", "report", "worker_assignment"],
       required: true,
     },
 
@@ -49,7 +49,7 @@ const UserNotificationSchema = new Schema(
 
     category: {
       type: String,
-      enum: ["job", "contact", "account", "report"],
+      enum: ["job", "contact", "account", "report", "worker_assignment"],
       required: true,
     },
 

@@ -1,78 +1,40 @@
 // models/Report.ts
 
-import mongoose, { Document, Schema, Types } from "mongoose";
-
-
-export type ReportStatus =
-  | "Pending"
-  | "Under Review"
-  | "Resolved"
-  | "Rejected";
+import { Document, Schema, Types, model } from "mongoose";
 
 
 export interface IReport extends Document {
   workerId: Types.ObjectId;
   employerId: Types.ObjectId;
-
   reportType: string;
-
   description: string;
-
-  status: ReportStatus;
-
-  createdAt: Date;
-  updatedAt: Date;
+  status: string;
+  sentBy: Types.ObjectId;
+  submitEvidence: {
+    fileName: string;
+    fileType: string;
+  }[];
+  reporter: string;
 }
 
+// Source: https://medium.com/@virtualnautilus/nested-array-of-object-in-mongoose-67902f4b90d2
+const submitEvidenceSchema = new Schema({
+  fileName: { type: String, required: true },
+  fileType: { type: String, required: true }
+})
 
-const reportSchema = new Schema<IReport>(
-  {
-    workerId: {
-      type: Schema.Types.ObjectId,
-      ref: "Worker",
-      required: true,
-    },
+const reportSchema = new Schema<IReport>({
+  workerId: { type: Schema.Types.ObjectId, ref: "Worker", required: [true, "Worker ID must be a string"] },
+  employerId: { type: Schema.Types.ObjectId, ref: "Employer", required: [true, "Employer ID must be a string"] },
+  reportType: { type: String, required: true, trim: true },
+  description: { type: String, required: true },
+  status: { type: String, enum: ["Pending","Under Review", "Resolved", "Rejected"], default: "Pending" },
+  sentBy: { type: Schema.Types.ObjectId, required: [true, "Sent By must be a string"] },
+  submitEvidence: { type: [submitEvidenceSchema], required: [true, "Submit Evidence is required" ]},
+  reporter: { type: String, enum: ["worker", "employer"], required: [true, "Reporter type is required"] }
+}, { timestamps: true });
 
-    employerId: {
-      type: Schema.Types.ObjectId,
-      ref: "Employer",
-      required: true,
-    },
-
-    reportType: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-
-    description: {
-      type: String,
-      required: true,
-      trim: true,
-      maxlength: 1000,
-    },
-
-    status: {
-      type: String,
-      enum: [
-        "Pending",
-        "Under Review",
-        "Resolved",
-        "Rejected",
-      ],
-      default: "Pending",
-    },
-  },
-  {
-    timestamps: true,
-  }
-);
-
-
-const Report = mongoose.model<IReport>(
+export default model<IReport>(
   "Report",
   reportSchema
 );
-
-
-export default Report;

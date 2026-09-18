@@ -1,12 +1,12 @@
 import { Document, model, Schema } from "mongoose";
 
 export interface IAdminNotification extends Document {
-  type: "job_posted" | "verification" | "application" | "report";
+  type: string;
   title: string;
   description: string;
   time: string;
   read: boolean;
-  category: "job" | "account";
+  category: string;
   details?: string;
 }
 
@@ -35,7 +35,7 @@ const AdminNotificationSchema: Schema = new Schema({
   },
   category: {
     type: String,
-    enum: ["job", "account"],
+    enum: ["job", "account", "report"],
     required: true,
   },
   details: {

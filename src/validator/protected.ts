@@ -323,23 +323,18 @@ export const NotificationIDSchema = z.object({
 
 // Reports Validator:
 export const reportValidator = z.object({
-  workerId: z.string(),
-  employerId: z.string(),
-  reportType: z.string(),
-
-  description: z
-    .string()
-    .min(10, "Description must be at least 10 characters")
-    .max(1000),
-
-  status: z
-    .enum([
-      "Pending",
-      "Under Review",
-      "Resolved",
-      "Rejected",
-    ])
-    .optional()
+  workerId: z.string("Worker ID must be a string"),
+  employerId: z.string("Employer ID must be a string"),
+  reportType: z.string("Report Type must be a string"),
+  description: z.string().min(20, "Description must be at least 20 characters").max(1000),
+  status: z.enum(["Pending", "Under Review", "Resolved", "Rejected",]).optional(),
+  sentBy: z.string("Sent By must be a string"),
+  submitEvidence: z.array(z.object({
+    fileName: z.string("File Name must be a string"),
+    fileType: z.string("File Type must be a string")
+  })),
+  reporter: z.enum(["worker", "employer"]),
+  reportCategory: z.string("Report Category must be a string")
 });
 
 
@@ -361,7 +356,9 @@ export const NewWorkerAssignmentSchema = z.object({
 
   description: z.string("Description must be a string"),
 
-  targetWorkers: z.array(z.string("Target Worker must be a string"), "Target Workers must be an array"),
+  targetWorkers: z.array(z.object({
+    _id: z.string("_id must be a string")
+  }), "Target Workers must be an array"),
   submitBefore: z.string("Submit Before must be a string"),
 
   rejectLate: z.boolean("Reject Late must be a boolean").optional()
@@ -433,6 +430,9 @@ export const UploadWorkerJobSchema = z.object({
 export const UpdateWorkerJobSchema = z.object({
   workerAssignment: z.string("Worker Assignment ID must be a string"),
   workerId: z.string("Worker ID must be a string"),
+  employerId: z.string("Employer ID must be a string"),
+  email: z.string("Employer Email must be a string"),
+  workerName: z.string("Worker Name must be a string"),
   status: z.enum(["submitted", "completed", "rejected"], "Status must be either submitted / completed / rejected")
 })
 
@@ -459,15 +459,31 @@ export type ReportInput = z.infer<
   typeof reportValidator
 >;
 
+export const GetReportDetailsSchema = z.object({
+  _id: z.string("Report ID is required")
+})
+
 export const UpdateReportSchema = z.object({
-  user: z.string("User ID is required"),
-  report: z.string("Report ID is required"),
-  status: z.enum(["Pending", "Under Review", "Resolved", "Rejected"]),
-  recipientId: z.string("Recipient ID is required")
+  reportId: z.string("Report ID is required").optional(),
+  reportType: z.string("Report Type must be a string").optional(),
+  description: z.string("Description must be a string").optional()
 })
 
 export const DeleteReportSchema = z.object({
   _id: z.string("Report ID must be a string").optional(),
   employerId: z.string("Employer ID must be a string").optional(),
   type: z.enum(["deleteById", "deleteAll"])
+})
+
+export const StatusReasonSchema = z.object({
+  workerId: z.string("Worker ID must be a string"),
+  employerId: z.string("Employer ID must be a string"),
+  jobId: z.string("Job ID must be a string"),
+  applicationId: z.string("Application ID must be a string"),
+  title: z.string("Title must be a string"),
+  description: z.string("Description must be a string")
+})
+
+export const ViewEmployerResponsesSchema = z.object({
+  applicationId: z.string("Application ID must be a string")
 })

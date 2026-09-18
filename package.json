@@ -49,6 +49,7 @@
     "express-slow-down": "^3.0.1",
     "googleapis": "^105.0.0",
     "helmet": "^8.1.0",
+    "hitpay": "^0.3.0",
     "isomorphic-dompurify": "^2.35.0",
     "jaro-winkler": "^0.2.8",
     "jsdom": "^27.4.0",

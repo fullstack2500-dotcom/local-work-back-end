@@ -150,6 +150,66 @@ export const UpdateReportPayload = (
   };
 };
 
+// Worker Assignment Payload:
+export const WorkerAssignmentPayload = (senderEmail: string, date: Date, recipientId: string) => {
+  return {
+    type: "worker_assignment",
+    title: `${senderEmail} has posted a new assignment`,
+    description: "Please read the worker assignments page to view more details.",
+    time: date.toISOString(),
+    read: false,
+    category: "worker_assignment",
+    details: "",
+    audience: "specific",
+    targetUsers: [recipientId],
+  }
+}
+
+// Update the Worker Job Status by Worker:
+export const UpdateWorkerJobWorker = (workerName: string, date: Date, recipientId: string) => {
+  return {
+    type: "worker_assignment",
+    title: `${workerName} submitted an assignment`,
+    description: "Please read the worker assignments page, specifically at the submitted assignments to view more details.",
+    time: date.toISOString(),
+    read: false,
+    category: "worker_assignment",
+    details: "",
+    audience: "specific",
+    targetUsers: [recipientId],
+  }
+}
+
+// Update the Worker Job Status by Worker:
+export const UpdateWorkerJobCompleted = (workerName: string, date: Date, recipientId: string) => {
+  return {
+    type: "worker_assignment",
+    title: `${workerName} marked your assignment as completed`,
+    description: "Please read the worker assignments page, specifically at the completed assignments to view more details.",
+    time: date.toISOString(),
+    read: false,
+    category: "worker_assignment",
+    details: "",
+    audience: "specific",
+    targetUsers: [recipientId],
+  }
+}
+
+// Update the Worker Job Status by Worker:
+export const UpdateWorkerJobRejected = (workerName: string, date: Date, recipientId: string) => {
+  return {
+    type: "worker_assignment",
+    title: `${workerName} marked your assignment as rejected`,
+    description: "Please read the worker assignments page, specifically at the submitted assignments to view more details.",
+    time: date.toISOString(),
+    read: false,
+    category: "worker_assignment",
+    details: "",
+    audience: "specific",
+    targetUsers: [recipientId],
+  }
+}
+
 // ==================== Notify the Employers ======================
 // =
 // =
@@ -194,5 +254,19 @@ export const NewReportPayloadEmployer = (
 
     audience: "employers",
     targetUsers: [employerId],
+  }
+}
+
+export const UploadWorkerJobPayload = (workerName: string, date: Date, recipientId: string) => {
+  return {
+    type: "worker_assignment",
+    title: `${workerName} has submitted an assignment`,
+    description: "Please read the submitted page to view more details.",
+    time: date.toISOString(),
+    read: false,
+    category: "worker_assignment",
+    details: "",
+    audience: "specific",
+    targetUsers: [recipientId],
   }
 }

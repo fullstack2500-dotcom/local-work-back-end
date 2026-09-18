@@ -2,7 +2,7 @@ import { Document, Schema, Types, model } from "mongoose"
 
 export interface IWorkerAssignment extends Document {
   employerId: Types.ObjectId;
-  targetWorkers: Types.ObjectId[];
+  targetWorkers: { _id: Types.ObjectId; }[];
   title: string;
   description: string;
   submitBefore: Date;
@@ -19,12 +19,12 @@ const WorkerAssignmentSchema: Schema = new Schema({
   },
 
   targetWorkers: {
-    type: [
-      {
+    type: [{
+      _id: {
         type: Schema.Types.ObjectId,
         ref: "Worker"
       }
-    ],
+    }],
     required: [true, "Target Workers are required"]
   },
 

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { WorkerRegister, displayFile, AdminRegister, AdminLogin, EmployerRegister, EmployerLogin, WorkerLogin, FindJobs, ViewSkills, DropdownComp, Workers, Reviews, HandleOTPVerification } from "../controller/authentication";
+import { WorkerRegister, displayFile, AdminRegister, AdminLogin, EmployerRegister, EmployerLogin, WorkerLogin, FindJobs, ViewSkills, DropdownComp, Workers, Reviews, HandleOTPVerification, PermitPost } from "../controller/authentication";
 import rateLimit from "express-rate-limit";
 import { uploadEmployerPermit, uploadFiles } from "../file/upload";
 import { createCompany } from "../controller/authentication";
@@ -22,48 +22,17 @@ router.get("/dropdown", DropdownComp)
 
 
 // Register the Admin:
-router.post("/admin/register",
-  rateLimit({ windowMs: 1 * 60 * 1000, max: 10, message: "Too many failed attempts, please try again after 1 minute.", skipSuccessfulRequests: true }),
-  rateLimit({ windowMs: 3 * 60 * 1000, max: 10 + 4, message: "Too many failed attempts, please try again after 3 minutes.", skipSuccessfulRequests: true }),
-  
-  rateLimit({ windowMs: 15 * 60 * 1000, max: 10 + 4 + 2, message: "Too many failed attempts, please try again after 15 minutes.", skipSuccessfulRequests: true }),
-  rateLimit({ windowMs: 60 * 60 * 1000, max: 10 + 4 + 2 + 1, message: "Too many failed attempts, please try again after 1 hr.", skipSuccessfulRequests: true }),
-  
-  rateLimit({ windowMs: 24 * 60 * 60 * 1000, max: 10 + 4 + 2 + 1 + 1, message: "Too many failed attempts, please try again after 24 hrs.", skipSuccessfulRequests: true }),
-  rateLimit({ windowMs: 60 * 60 * 1000, max: 20, message: "Too many accounts were created, please try again after 1 hr.", skipFailedRequests: true }),
-
-AdminRegister)
+router.post("/admin/register", AdminRegister)
 
 
 
 // Register User:
-router.post("/employer/register",
-  rateLimit({ windowMs: 1 * 60 * 1000, max: 10, message: "Too many failed attempts, please try again after 1 minute.", skipSuccessfulRequests: true }),
-  rateLimit({ windowMs: 3 * 60 * 1000, max: 10 + 4, message: "Too many failed attempts, please try again after 3 minutes.", skipSuccessfulRequests: true }),
-  
-  rateLimit({ windowMs: 15 * 60 * 1000, max: 10 + 4 + 2, message: "Too many failed attempts, please try again after 15 minutes.", skipSuccessfulRequests: true }),
-  rateLimit({ windowMs: 60 * 60 * 1000, max: 10 + 4 + 2 + 1, message: "Too many failed attempts, please try again after 1 hr.", skipSuccessfulRequests: true }),
-  
-  rateLimit({ windowMs: 24 * 60 * 60 * 1000, max: 10 + 4 + 2 + 1 + 1, message: "Too many failed attempts, please try again after 24 hrs.", skipSuccessfulRequests: true }),
-  rateLimit({ windowMs: 60 * 60 * 1000, max: 20, message: "Too many accounts were created, please try again after 1 hr.", skipFailedRequests: true }),
-
-  uploadEmployerPermit.single("permit"),
-  
-EmployerRegister)
-
+router.post("/employer/register", EmployerRegister)
+router.post("/upload/permit", PermitPost)
 
 
 // Register User:
 router.post("/worker/register",
-  rateLimit({ windowMs: 1 * 60 * 1000, max: 10, message: "Too many failed attempts, please try again after 1 minute.", skipSuccessfulRequests: true }),
-  rateLimit({ windowMs: 3 * 60 * 1000, max: 10 + 4, message: "Too many failed attempts, please try again after 3 minutes.", skipSuccessfulRequests: true }),
-  
-  rateLimit({ windowMs: 15 * 60 * 1000, max: 10 + 4 + 2, message: "Too many failed attempts, please try again after 15 minutes.", skipSuccessfulRequests: true }),
-  rateLimit({ windowMs: 60 * 60 * 1000, max: 10 + 4 + 2 + 1, message: "Too many failed attempts, please try again after 1 hr.", skipSuccessfulRequests: true }),
-  
-  rateLimit({ windowMs: 24 * 60 * 60 * 1000, max: 10 + 4 + 2 + 1 + 1, message: "Too many failed attempts, please try again after 24 hrs.", skipSuccessfulRequests: true }),
-  rateLimit({ windowMs: 60 * 60 * 1000, max: 20, message: "Too many accounts were created, please try again after 1 hr.", skipFailedRequests: true }),
-  
   uploadFiles.fields([
     { name: "resume", maxCount: 1 }, // Required
     { name: "photo", maxCount: 1 },  // Optional
@@ -78,15 +47,6 @@ WorkerRegister)
 
 // Login User:
 router.post("/admin/login",
-  rateLimit({ windowMs: 1 * 60 * 1000, max: 10, message: "Too many failed attempts, please try again after 1 minute.", skipSuccessfulRequests: true }),
-  rateLimit({ windowMs: 3 * 60 * 1000, max: 10 + 4, message: "Too many failed attempts, please try again after 3 minutes.", skipSuccessfulRequests: true }),
-
-  rateLimit({ windowMs: 15 * 60 * 1000, max: 10 + 4 + 2, message: "Too many failed attempts, please try again after 15 minutes.", skipSuccessfulRequests: true }),
-  rateLimit({ windowMs: 60 * 60 * 1000, max: 10 + 4 + 2 + 1, message: "Too many failed attempts, please try again after 1 hr.", skipSuccessfulRequests: true }),
-  
-  rateLimit({ windowMs: 24 * 60 * 60 * 1000, max: 10 + 4 + 2 + 1 + 1, message: "Too many failed attempts, please try again after 24 hrs.", skipSuccessfulRequests: true }),
-  rateLimit({ windowMs: 60 * 60 * 1000, max: 20, message: "Too many login attempts, please try again after 1 hr.", skipFailedRequests: true }),
-
   AdminLogin
 )
 
@@ -94,15 +54,6 @@ router.post("/admin/login",
 
 // Login Employer:
 router.post("/employer/login",
-  rateLimit({ windowMs: 1 * 60 * 1000, max: 10, message: "Too many failed attempts, please try again after 1 minute.", skipSuccessfulRequests: true }),
-  rateLimit({ windowMs: 3 * 60 * 1000, max: 10 + 4, message: "Too many failed attempts, please try again after 3 minutes.", skipSuccessfulRequests: true }),
-
-  rateLimit({ windowMs: 15 * 60 * 1000, max: 10 + 4 + 2, message: "Too many failed attempts, please try again after 15 minutes.", skipSuccessfulRequests: true }),
-  rateLimit({ windowMs: 60 * 60 * 1000, max: 10 + 4 + 2 + 1, message: "Too many failed attempts, please try again after 1 hr.", skipSuccessfulRequests: true }),
-  
-  rateLimit({ windowMs: 24 * 60 * 60 * 1000, max: 10 + 4 + 2 + 1 + 1, message: "Too many failed attempts, please try again after 24 hrs.", skipSuccessfulRequests: true }),
-  rateLimit({ windowMs: 60 * 60 * 1000, max: 20, message: "Too many login attempts, please try again after 1 hr.", skipFailedRequests: true }),
-
   EmployerLogin
 )
 
@@ -110,15 +61,6 @@ router.post("/employer/login",
 
 // Login User:
 router.post("/worker/login",
-  rateLimit({ windowMs: 1 * 60 * 1000, max: 10, message: "Too many failed attempts, please try again after 1 minute.", skipSuccessfulRequests: true }),
-  rateLimit({ windowMs: 3 * 60 * 1000, max: 10 + 4, message: "Too many failed attempts, please try again after 3 minutes.", skipSuccessfulRequests: true }),
-
-  rateLimit({ windowMs: 15 * 60 * 1000, max: 10 + 4 + 2, message: "Too many failed attempts, please try again after 15 minutes.", skipSuccessfulRequests: true }),
-  rateLimit({ windowMs: 60 * 60 * 1000, max: 10 + 4 + 2 + 1, message: "Too many failed attempts, please try again after 1 hr.", skipSuccessfulRequests: true }),
-  
-  rateLimit({ windowMs: 24 * 60 * 60 * 1000, max: 10 + 4 + 2 + 1 + 1, message: "Too many failed attempts, please try again after 24 hrs.", skipSuccessfulRequests: true }),
-  rateLimit({ windowMs: 60 * 60 * 1000, max: 20, message: "Too many login attempts, please try again after 1 hr.", skipFailedRequests: true }),
-
   WorkerLogin
 )
 

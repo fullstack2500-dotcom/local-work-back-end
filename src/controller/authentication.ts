@@ -22,6 +22,7 @@ import JobsCompleted from "../model/JobsCompleted";
 import passport from 'passport';
 import { Strategy as LocalStrategy } from 'passport-local';
 import nodemailer from 'nodemailer';
+import { uploadPermits } from "../file/upload";
 
 // Source: https://medium.com/@yshashi30/introduction-5f864164610d
 // Generate OTP
@@ -354,16 +355,19 @@ export const EmployerRegister = async (req: Request, res: Response) => {
   const validatedData = EmployerSchema.safeParse(req.body);
 
   if (!validatedData.success) {
+    console.log(req.body, "Empty request")
+
     return res.status(400).json({
       success: false,
       message: validatedData.error.issues[0].message,
     });
   }
 
-  const { company, email, password, phone, industry, industryTitle } = validatedData.data;
-  const permitFile = req.file;
+  const { company, email, password, phone, industry, industryTitle, permit } = validatedData.data;
 
   const CompanyName = normalize(company);
+
+  console.log(validatedData.data, "Request not empty")
 
   try {
     let finalIndustry = industry;
@@ -440,7 +444,7 @@ export const EmployerRegister = async (req: Request, res: Response) => {
     const salt = await bcrypt.genSalt(12);
     const hash = await bcrypt.hash(password, salt);
 
-    if (!permitFile) {
+    if (!permit) {
       return res.status(400).json({
         success: false,
         message: "Business permit is required",
@@ -453,7 +457,7 @@ export const EmployerRegister = async (req: Request, res: Response) => {
       password: hash,
       phone,
       industry: finalIndustry,
-      permit: permitFile.filename,
+      permit,
     });
 
     await newEmployer.save();
@@ -484,6 +488,26 @@ export const EmployerRegister = async (req: Request, res: Response) => {
   }
 };
 
+// Permit Post:
+export const PermitPost = async (req: Request, res: Response) => {
+  uploadPermits(req, res, (err) => {
+    if (err) {
+      console.log(err)
+      return res.status(400).json({
+        success: false,
+        errors: err
+      })
+    }
+
+    console.log(req.file)
+
+    return res.status(201).json({
+      success: true,
+      filename: req.file
+    })
+  })
+}
+
 
 
 // Login Controller:
@@ -513,7 +537,7 @@ export const EmployerLogin = async (req: Request, res: Response) => {
     //   status: user.status
     // })
     
-    const token = jwt.sign({ id: user._id, role: user.role, company: user.company, status: user.status }, process.env.JWT_SECRET as string, {
+    const token = jwt.sign({ id: user._id, email: user.email, role: user.role, company: user.company, status: user.status }, process.env.JWT_SECRET as string, {
       expiresIn: '1h'
     })
 
@@ -556,7 +580,7 @@ export const WorkerLogin = async (req: Request, res: Response) => {
     
     if (user.status === "deleted" || user.status === "pending" || user.status === "not_active") return res.status(400).json({ success: false, message: "Incorrect Email / Password" })
 
-    const token = jwt.sign({ id: user._id, role: user.role, status: user.status }, process.env.JWT_SECRET as string, {
+    const token = jwt.sign({ id: user._id, name: user.name, role: user.role, status: user.status }, process.env.JWT_SECRET as string, {
       expiresIn: '1h'
     })
 
