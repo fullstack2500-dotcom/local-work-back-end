@@ -91,7 +91,7 @@ export const UpdateApplicationPayload = (
       status === "Accepted"
         ? "Congratulations! Your application has been accepted."
         : status === "Not Selected"
-        ? "Unfortunately, you were not selected for this position."
+        ? "Unfortunately, you were not selected for this position. Please go to My Applications > View Employer Responses to know why your application was denied."
         : "Your interview has been scheduled.",
 
     time: date.toISOString(),
@@ -102,7 +102,7 @@ export const UpdateApplicationPayload = (
       status === "Accepted"
         ? `${user} accepted your application for ${jobTitle}.`
         : status === "Not Selected"
-        ? `${user} marked your application as not selected for ${jobTitle}.`
+        ? `${user} marked your application as not selected for ${jobTitle}. Please go to My Applications > View Employer Responses to know why your application was denied.`
         : `${user} scheduled an interview for your ${jobTitle} application.`,
 
     audience: "specific",
@@ -267,6 +267,20 @@ export const UploadWorkerJobPayload = (workerName: string, date: Date, recipient
     category: "worker_assignment",
     details: "",
     audience: "specific",
+    targetUsers: [recipientId],
+  }
+}
+
+export const UploadReasonPayload = (NameEmail: string, date: Date, recipientId: string, sentBy: string, job: string, worker: string) => {
+  return {
+    type: "application",
+    title: `${NameEmail} has submitted a response `,
+    description: sentBy === "worker" ? `Go to Applications > View Conversations from ${worker}'s application from the job named ${job}` : `Please go to My Application > View Employer Conversations from ${job}`,
+    time: date.toISOString(),
+    read: false,
+    category: "application",
+    details: "",
+    audience: "workers",
     targetUsers: [recipientId],
   }
 }

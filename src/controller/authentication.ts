@@ -580,7 +580,7 @@ export const WorkerLogin = async (req: Request, res: Response) => {
     
     if (user.status === "deleted" || user.status === "pending" || user.status === "not_active") return res.status(400).json({ success: false, message: "Incorrect Email / Password" })
 
-    const token = jwt.sign({ id: user._id, name: user.name, role: user.role, status: user.status }, process.env.JWT_SECRET as string, {
+    const token = jwt.sign({ id: user._id, name: user.name, role: user.role, status: user.status, email: user.email }, process.env.JWT_SECRET as string, {
       expiresIn: '1h'
     })
 

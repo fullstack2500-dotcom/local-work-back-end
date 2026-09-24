@@ -47,7 +47,7 @@ router.get("/worker/profile", authorized, worker, ViewProfileController)
 router.get("/contacts", authorized, worker, ViewContacts)
 
 router.get("/jobs/submitted/:_id", authorized, worker, SubmittedFiles)
-router.get("/responses/:applicationId", authorized, worker, ViewEmployerResponses)
+router.get("/responses/:applicationId", authorized, ViewEmployerResponses)
 
 
 // GET Requests [Employers]:
@@ -91,10 +91,10 @@ router.post("/addTag", authorized, employers, AddTag)
 router.post("/contact", authorized, employers, PostContact)
 
 router.post("/worker/assignment", authorized, employers, NewWorkerAssignment)
-router.post("/application/reason", authorized, employers, SubmitReason)
 
 // POST Requests [Workers & Employers]:
 router.post("/report/submit/evidence", authorized, ReportEvidence)
+router.post("/application/reason", authorized, SubmitReason)
 
 
 // PUT [Workers]:

@@ -20,7 +20,7 @@ import Company from "../model/Company";
 import AdminNotification from "../model/AdminNotification";
 import UserNotification from "../model/UserNotification";
 import { createJobPayload, NewApplicationPayload, NewReportPayload } from "../notif-payload/admin";
-import { NewMessagePayload, PostContactPayload, UpdateApplicationPayload, NewApplicationPayloadEmployer, NewReportPayloadEmployer, UpdateReportPayload, WorkerAssignmentPayload, UploadWorkerJobPayload, UpdateWorkerJobWorker, UpdateWorkerJobCompleted, UpdateWorkerJobRejected } from "../notif-payload/user";
+import { NewMessagePayload, PostContactPayload, UpdateApplicationPayload, NewApplicationPayloadEmployer, NewReportPayloadEmployer, UpdateReportPayload, WorkerAssignmentPayload, UploadWorkerJobPayload, UpdateWorkerJobWorker, UpdateWorkerJobCompleted, UpdateWorkerJobRejected, UploadReasonPayload } from "../notif-payload/user";
 import { getIO } from "../socket";
 import Message from "../model/Message";
 import stringComparison from "string-comparison";
@@ -37,6 +37,7 @@ import { uploadJobs, reportUpload } from "../file/upload";
 import { worker } from "../middleware/roles";
 import Admin from "../model/Admin";
 import Reason from "../model/Reason";
+import nodemailer from 'nodemailer';
 
 
 // Replace File Function:
@@ -1814,7 +1815,7 @@ export const UploadWorkerJobFile = async (req: Request, res: Response) => {
   })
 }
 
-// [Worker] - ViewEmployerResponses: This will show the responses of the employer with regards of their application
+// [Worker & Employer] - ViewEmployerResponses: This will show the responses of the employer with regards of their application
 export const ViewEmployerResponses = async (req: Request, res: Response) => {
   const validatedData = ViewEmployerResponsesSchema.safeParse(req.params)
 
@@ -1828,7 +1829,10 @@ export const ViewEmployerResponses = async (req: Request, res: Response) => {
   const { applicationId } = validatedData.data;
 
   try {
-    const EmployerResponses = await Reason.find({ applicationId }).sort({ createdAt: -1 });
+    const EmployerResponses = await Reason.find({ applicationId })
+                                          .populate("workerId")
+                                          .populate("employerId")
+                                          .populate("jobId");
 
     return res.status(200).json({
       success: true,
@@ -2245,10 +2249,12 @@ export const EmployerProfileController = async (req: Request, res: Response) => 
   const { _id } = validatedEmployer.data
 
   try {
-    const EmployerProf = await Employer.findOne({ _id })
+    const EmployerProf = await Employer.findOne({ _id }).populate("industry")
     const Industries = await Industry.find({
       notAccepted: { $ne: true }
     }).sort({ createdAt: -1 });
+
+    if (!EmployerProf) return res.status(404).json({ success: false, message: "Employer Not Found" })
 
     // console.log("FROM MONGOOSE");
     // console.dir(Industries, { depth: null });
@@ -2258,13 +2264,6 @@ export const EmployerProfileController = async (req: Request, res: Response) => 
       EmployerProf,
       Industries,
     });
-    if (!EmployerProf) return res.status(404).json({ success: false, message: "Employer Not Found" })
-
-    return res.status(200).json({
-      success: true,
-      EmployerProf,
-      Industries
-    })
   } catch (error) {
     mainError(
       error,
@@ -2706,9 +2705,19 @@ export const CompanyDetails = async (req: Request, res: Response) => {
   }
 }
 
-// [Employer]: SubmitReason = The purpose of this is for employers to submit reason of accepted/rejected job:
+// [Worker & Employer]: SubmitReason = The purpose of this is for employers to submit reason of accepted/rejected job:
 export const SubmitReason = async (req: Request, res: Response) => {
-  const validatedData = StatusReasonSchema.safeParse({ ...req.body, employerId: req.user.id })
+  const io = getIO()
+  let parseOBJ = {}
+  let Email = ""
+
+  if (req.user.role === "worker") {
+    parseOBJ = { ...req.body, workerId: req.user.id, sentBy: req.user.role }
+  } else {
+    parseOBJ = { ...req.body, employerId: req.user.id, sentBy: req.user.role }
+  }
+
+  const validatedData = StatusReasonSchema.safeParse(parseOBJ)
 
   if (!validatedData.success) {
     return res.status(400).json({
@@ -2717,7 +2726,39 @@ export const SubmitReason = async (req: Request, res: Response) => {
     })
   }
 
-  const { workerId, employerId, jobId, applicationId, title, description } = validatedData.data;
+  const { workerId, employerId, jobId, applicationId, title, description, sentBy } = validatedData.data;
+
+  if (sentBy === "worker") {
+    const EmployerEmail = await Employer.findOne({ _id: employerId })
+    if (!EmployerEmail) return res.status(404).json({ success: false, info: "Email doesn't exist" })
+
+    Email = EmployerEmail.email
+  } else {
+    const WorkerEmail = await Worker.findOne({ _id: workerId })
+    if (!WorkerEmail) return res.status(404).json({ success: false, info: "Email doesn't exist" })
+
+    Email = WorkerEmail.email
+
+    const ReasonsList = await Reason.find({ applicationId, sentBy: "employer" })
+
+    if (!ReasonsList.length) {
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS,
+        },
+      });
+
+      // Source: https://nodemailer.com/message
+      await transporter.sendMail({
+        from: `"${req.user.email}" <${process.env.EMAIL_USER}>`,
+        to: Email,
+        subject: title,
+        text: description
+      });
+    }
+  }
 
   try {
     const filteredTitle = filterXSS(title, {
@@ -2732,9 +2773,43 @@ export const SubmitReason = async (req: Request, res: Response) => {
       stripIgnoreTagBody: true
     })
 
-    const newSubmitReason = new Reason({ workerId, employerId, jobId, applicationId, title: filteredTitle, description: filteredDescription });
+    console.log("Request.user.email:", req.user.email)
+    const newSubmitReason = new Reason({ workerId, employerId, jobId, applicationId, title: filteredTitle, description: filteredDescription, sentBy });
 
     await newSubmitReason.save()
+
+    const ApplicationDetails = await Application.findOne({ _id: applicationId })
+    if (!ApplicationDetails) return res.status(404).json({ success: false, info: "Application not found" })
+
+    const JobDetails = await Job.findOne({ _id: ApplicationDetails.job })
+    if (!JobDetails) return res.status(404).json({ success: false, info: "Job not found" })
+
+    const WorkerDetails = await Worker.findOne({ _id: ApplicationDetails.worker })
+    if (!WorkerDetails) return res.status(404).json({ success: false, info: "Worker not found" })
+
+    if (sentBy === "worker") {
+      const notification = new UserNotification(
+        UploadReasonPayload(req.user.email, new Date(), employerId, sentBy, JobDetails.title, WorkerDetails.name)
+      )
+      
+      await notification.save()
+
+      io.to(employerId.toString()).emit(
+        "notification:employer:new",
+        notification
+      )
+    } else {
+      const notification = new UserNotification(
+        UploadReasonPayload(req.user.email, new Date(), workerId, sentBy, JobDetails.title, WorkerDetails.name)
+      )
+
+      await notification.save()
+
+      io.to(workerId.toString()).emit(
+        "notification:worker:new",
+        notification
+      )
+    }
 
     return res.status(201).json({
       success: true,

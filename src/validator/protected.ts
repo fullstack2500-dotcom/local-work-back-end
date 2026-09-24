@@ -481,7 +481,8 @@ export const StatusReasonSchema = z.object({
   jobId: z.string("Job ID must be a string"),
   applicationId: z.string("Application ID must be a string"),
   title: z.string("Title must be a string"),
-  description: z.string("Description must be a string")
+  description: z.string("Description must be a string"),
+  sentBy: z.enum(["worker", "employer"])
 })
 
 export const ViewEmployerResponsesSchema = z.object({

@@ -7,7 +7,7 @@ export interface IUserNotification extends Document {
   description: string;
   read: boolean;
 
-  category: "job" | "contact" | "account" | "report" | "worker_assignment";
+  category: "job" | "contact" | "account" | "report" | "worker_assignment" | "application";
 
   // targeting
   audience: "all" | "workers" | "employers" | "specific";
@@ -49,7 +49,7 @@ const UserNotificationSchema = new Schema(
 
     category: {
       type: String,
-      enum: ["job", "contact", "account", "report", "worker_assignment"],
+      enum: ["job", "contact", "account", "report", "worker_assignment", "application"],
       required: true,
     },
 

@@ -8,6 +8,7 @@ export interface IStatusReason extends Document {
   employerId: mongoose.Types.ObjectId,
   jobId: mongoose.Types.ObjectId,
   applicationId: mongoose.Types.ObjectId,
+  sentBy: string,
   title: string,
   description: string
 }
@@ -35,6 +36,12 @@ const Reason: Schema = new Schema({
     type: Schema.Types.ObjectId,
     ref: "Application",
     required: [true, "Application ID is required"]
+  },
+
+  sentBy: {
+    type: String,
+    enum: ["worker", "employer"],
+    required: [true, "Sent By is required"]
   },
 
   title: {

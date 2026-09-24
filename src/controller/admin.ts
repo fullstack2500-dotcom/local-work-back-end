@@ -502,7 +502,9 @@ export const DeleteWorkerEmployer = async (req: Request, res: Response) => {
 export const Reports = async (req: Request, res: Response) => {
   try {
     const Industries = await Industry.find().sort({ createdAt: -1 }) || [];
-    const ReportedWorkers = await Report.find().sort({ createdAt: -1 });
+    const ReportedWorkers = await Report.find().sort({ createdAt: -1 })
+                                        .populate("workerId")
+                                        .populate("employerId");
 
     const workerGrowth = await Worker.aggregate([
       {
