@@ -466,7 +466,21 @@ export const GetReportDetailsSchema = z.object({
 export const UpdateReportSchema = z.object({
   reportId: z.string("Report ID is required").optional(),
   reportType: z.string("Report Type must be a string").optional(),
-  description: z.string("Description must be a string").optional()
+  description: z.string("Description must be a string").optional(),
+  submitEvidence: z.array(z.object({
+    fileName: z.string("File name must be a string"),
+    fileType: z.string("File type must be a string")
+  }),"Submit Evidence must be an array").optional()
+})
+
+export const SubmitEvidenceUpdate = z.object({
+  reportId: z.string("Report ID is required"),
+  submitEvidence: z.array(
+    z.object({
+      fileName: z.string("File name must be a string"),
+      fileType: z.string("File type must be a string")
+    })
+  ).optional()
 })
 
 export const DeleteReportSchema = z.object({

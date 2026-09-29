@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { Dashboard, UploadWorkerProfilePhoto, IsUserLogged, LogOut, MarkContactAsRead, viewPostedJobs, getCityProvinceList, viewJobOverview, AddLocation, AddTag, createJob, viewJobs, newApplication, viewApplications, WithdrawApplication, viewApplicationsEmployer, UpdateApp, UpdateInterview, CompanyDetails, ViewWorkers, IsApplied, Locations, ViewProfileController, UpdateWorker, UpdateEmployer, EmployerProfileController, ReviewUpload, PostContact, OpenPositionsTotalApplications, GetIndustries, UploadEmployerProfilePhoto, ViewContacts, ViewMessage, NewMessage, ViewContactsEmployer, UserNotifications, MarkAsRead, DeleteNotification, MarkAllAsRead, NewReport, GetReports, UpdateReport, DeleteReport, NewWorkerAssignment, WorkerAssignments, UploadWorkerJob, UploadWorkerJobFile, UpdateWorkerJob, SubmittedFiles, SubmittedJobs, SubmittedJobsById, CompletedAssignments, NewWorkerJob, DeleteWorkerJob, DeleteWorkerJobFile, GetReportDetails, ReportEvidence, SubmitReason, ViewEmployerResponses } from "../controller/protected";
+import { Dashboard, UploadWorkerProfilePhoto, IsUserLogged, LogOut, MarkContactAsRead, viewPostedJobs, getCityProvinceList, viewJobOverview, AddLocation, AddTag, createJob, viewJobs, newApplication, viewApplications, WithdrawApplication, viewApplicationsEmployer, UpdateApp, UpdateInterview, CompanyDetails, ViewWorkers, IsApplied, Locations, ViewProfileController, UpdateWorker, UpdateEmployer, EmployerProfileController, ReviewUpload, PostContact, OpenPositionsTotalApplications, GetIndustries, UploadEmployerProfilePhoto, ViewContacts, ViewMessage, NewMessage, ViewContactsEmployer, UserNotifications, MarkAsRead, DeleteNotification, MarkAllAsRead, NewReport, GetReports, UpdateReport, DeleteReport, NewWorkerAssignment, WorkerAssignments, UploadWorkerJob, UploadWorkerJobFile, UpdateWorkerJob, SubmittedFiles, SubmittedJobs, SubmittedJobsById, CompletedAssignments, NewWorkerJob, DeleteWorkerJob, DeleteWorkerJobFile, GetReportDetails, ReportEvidence, SubmitReason, ViewEmployerResponses, SubmitEvidenceUpdateController } from "../controller/protected";
 import authorized from "../middleware/authorized";
 import { employers, worker, admin } from "../middleware/roles";
 import { uploadProfilePhoto, uploadFiles, uploadEmployerPermit } from "../file/upload";
@@ -141,6 +141,7 @@ router.put(
 
 // PUT [Workers & Employers]:
 router.put("/report", authorized, UpdateReport)
+router.put("/update/evidences", authorized, SubmitEvidenceUpdateController)
 
 // DELETE [Workers]:
 router.delete("/worker/job/file/:_id", authorized, worker, DeleteWorkerJobFile)

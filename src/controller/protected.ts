@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { ApplicationSchema, CompanySchema, JobOverviewSchema, EmployerIdSchema, JobSchema, LocationSchema, TagSchema, employerIdSchema, ViewProfile, WorkerIDJob, JobIDJob, ApplicationStatusUpdate, OnlyAccepted, UpdateApplication, InterviewDate, CompanySchemaID, IsAppliedS, WorkerID, TimeLineStatus, UpdateWorkerSchema, UpdateEmployerSchema, EmployerProfileS, RatingSchema, PostContacts, EmployerSchemaid, SkillID, PostMessage, ViewMessageByContactID, NotificationIDSchema, reportValidator, reportWorkerValidator, UpdateReportSchema, DeleteReportSchema, NewWorkerAssignmentSchema, UploadWorkerJobSchema, UpdateWorkerJobSchema, SubmittedFilesSchema, DeleteWorkerJobSchema, SubmittedJobsSchema, SubmittedJobsIDSchema, CompletedAssignmentSchema, NewWorkerJobSchema, DeleteJobSchema, GetReportDetailsSchema, StatusReasonSchema, ViewEmployerResponsesSchema } from "../validator/protected";
+import { ApplicationSchema, CompanySchema, JobOverviewSchema, EmployerIdSchema, JobSchema, LocationSchema, TagSchema, employerIdSchema, ViewProfile, WorkerIDJob, JobIDJob, ApplicationStatusUpdate, OnlyAccepted, UpdateApplication, InterviewDate, CompanySchemaID, IsAppliedS, WorkerID, TimeLineStatus, UpdateWorkerSchema, UpdateEmployerSchema, EmployerProfileS, RatingSchema, PostContacts, EmployerSchemaid, SkillID, PostMessage, ViewMessageByContactID, NotificationIDSchema, reportValidator, reportWorkerValidator, UpdateReportSchema, DeleteReportSchema, NewWorkerAssignmentSchema, UploadWorkerJobSchema, UpdateWorkerJobSchema, SubmittedFilesSchema, DeleteWorkerJobSchema, SubmittedJobsSchema, SubmittedJobsIDSchema, CompletedAssignmentSchema, NewWorkerJobSchema, DeleteJobSchema, GetReportDetailsSchema, StatusReasonSchema, ViewEmployerResponsesSchema, SubmitEvidenceUpdate } from "../validator/protected";
 import Job from "../model/Job";
 import { filterXSS } from "xss";
 import Application from "../model/Application";
@@ -677,6 +677,58 @@ export const UpdateReport = async (req: Request, res: Response) => {
   }
 }
 
+// Submit Evidence Status Update:
+export const SubmitEvidenceUpdateController = async (req: Request, res: Response) => {
+  const validatedData = SubmitEvidenceUpdate.safeParse(req.body)
+
+  if (!validatedData.data) {
+    console.error(validatedData.error)
+    return res.status(400).json({
+      success: false,
+      info: validatedData.error
+    })
+  }
+
+  const { reportId, submitEvidence } = validatedData.data;
+  let info;
+  let ArraySubmit;
+
+  try {
+    if (submitEvidence) {
+
+      const ReportInform = await Report.findOne({ _id: reportId })
+      if (!ReportInform) return res.status(404).json({ success: false, info: "Report Not Found" })
+
+      ArraySubmit = ReportInform.submitEvidence
+
+      if (submitEvidence.length) {
+        for (let SubmitIndex = 0; SubmitIndex < submitEvidence.length; SubmitIndex++) {
+          ArraySubmit.push({
+            fileName: submitEvidence[SubmitIndex].fileName,
+            fileType: submitEvidence[SubmitIndex].fileType
+          })
+        }
+      }
+
+      await Report.findOneAndUpdate({ _id: reportId }, { submitEvidence: ArraySubmit })
+      info = "Successfully updated evidence information"
+    } else {
+      info = "No files were added."
+    }
+
+    return res.status(200).json({
+      success: true,
+      info,
+      ArraySubmit
+    })
+  } catch (error) {
+    mainError(error, res)
+  }
+}
+
+// Submit Evidence Add to the controller:
+
+
 
 // [Worker & Employer] - Create new report:
 export const NewReport = async (req: Request, res: Response) => {
@@ -828,6 +880,22 @@ export const DeleteReport = async (req: Request, res: Response) => {
     
     mainError(error, res)
   }
+}
+
+export const DeleteReportX = async (req: Request, res: Response) => {
+  console.log("Executing DeleteReport X Controller")
+  // Paki-add ng functionalities
+
+  // Ito ang example para sa delete function ng multer:
+  
+  // Source used: https://medium.com/@priyaeswaran/automatic-image-deletion-in-node-js-multer-fs-f1835d272b92
+  // for (let i = 0; i < jobCompleted.workerUpload.length; i++) {
+  //   const imagePath = path.join(__dirname, "../../uploads/workerJobsCompleted", jobCompleted.workerUpload[i].name);
+
+  //   fs.unlink(imagePath, (err) => {
+  //     if (err) return res.status(400).json({ success: false, info: "Failed to delete image" })
+  //   })
+  // }
 }
 
 // Create New Application:
