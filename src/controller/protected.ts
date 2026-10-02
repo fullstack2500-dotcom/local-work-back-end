@@ -891,7 +891,7 @@ export const DeleteReport = async (req: Request, res: Response) => {
 
 export const DeleteReports = async (req: Request, res: Response) => {
   console.log("Executing Delete Reports Controller")
-  const validatedData = DeleteReportsSchema.safeParse({ userId: req.user.id })
+  const validatedData = DeleteReportsSchema.safeParse({ sentBy: req.user.id })
 
   if (!validatedData.data) {
     console.error("Failed to validate the user ID")
@@ -901,16 +901,11 @@ export const DeleteReports = async (req: Request, res: Response) => {
     })
   }
 
-  const { userId } = validatedData.data;
-  let _Report;
+  const { sentBy } = validatedData.data;
   let errReport = false;
 
   try {
-    if (req.user.role === "worker") {
-      _Report = await Report.find({ workerId: userId })
-    } else {
-      _Report = await Report.find({ employerId: userId })
-    }
+    const _Report = await Report.find({ sentBy })
 
     for (let i = 0; i < _Report.length; i++) {
       const submitEvidence = _Report[i].submitEvidence;
@@ -931,11 +926,7 @@ export const DeleteReports = async (req: Request, res: Response) => {
 
     if (!errReport) {
       // Source: https://www.mongodb.com/docs/manual/reference/method/db.collection.deletemany/
-      if (req.user.role === "worker") {
-        _Report = await Report.deleteMany({ workerId: userId })
-      } else {
-        _Report = await Report.deleteMany({ employerId: userId })
-      }
+      await Report.deleteMany({ sentBy })
 
       console.log("Reports Deleted!")
 

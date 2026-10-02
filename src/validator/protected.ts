@@ -488,7 +488,7 @@ export const DeleteReportSchema = z.object({
 })
 
 export const DeleteReportsSchema = z.object({
-  userId: z.string("User ID must be a string")
+  sentBy: z.string("User ID must be a string")
 })
 
 export const DeleteReportXSchema = z.object({
