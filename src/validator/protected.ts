@@ -484,9 +484,17 @@ export const SubmitEvidenceUpdate = z.object({
 })
 
 export const DeleteReportSchema = z.object({
-  _id: z.string("Report ID must be a string").optional(),
-  employerId: z.string("Employer ID must be a string").optional(),
-  type: z.enum(["deleteById", "deleteAll"])
+  _id: z.string("Report ID must be a string")
+})
+
+export const DeleteReportsSchema = z.object({
+  userId: z.string("User ID must be a string")
+})
+
+export const DeleteReportXSchema = z.object({
+  reportId: z.string("Report ID must be a string"),
+  fileName: z.string("File Name must be a string"),
+  fileID: z.string("File ID must be a string")
 })
 
 export const StatusReasonSchema = z.object({

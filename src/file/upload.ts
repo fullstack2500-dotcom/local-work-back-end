@@ -214,8 +214,9 @@ const reportStorage = multer.diskStorage({
         cb(null, path.join(__dirname, '../../uploads/reports'))
     },
     filename: function (req, file, cb) {
-            cb(null, file.fieldname + '-' + Date.now() + file.originalname)
-            console.log(file.fieldname + '-' + Date.now() + file.originalname)
+            // Source: https://stackoverflow.com/questions/48418680/enoent-no-such-file-or-directory
+            cb(null, file.fieldname + "_" + Date.now() + "_x24-0025-30-0000x41" + file.originalname)
+            console.log(file.fieldname + "_" + Date.now() + "_x24-0025-30-0000x41" + file.originalname)
     }
 });
 

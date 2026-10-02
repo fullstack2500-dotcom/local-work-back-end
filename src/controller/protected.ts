@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { ApplicationSchema, CompanySchema, JobOverviewSchema, EmployerIdSchema, JobSchema, LocationSchema, TagSchema, employerIdSchema, ViewProfile, WorkerIDJob, JobIDJob, ApplicationStatusUpdate, OnlyAccepted, UpdateApplication, InterviewDate, CompanySchemaID, IsAppliedS, WorkerID, TimeLineStatus, UpdateWorkerSchema, UpdateEmployerSchema, EmployerProfileS, RatingSchema, PostContacts, EmployerSchemaid, SkillID, PostMessage, ViewMessageByContactID, NotificationIDSchema, reportValidator, reportWorkerValidator, UpdateReportSchema, DeleteReportSchema, NewWorkerAssignmentSchema, UploadWorkerJobSchema, UpdateWorkerJobSchema, SubmittedFilesSchema, DeleteWorkerJobSchema, SubmittedJobsSchema, SubmittedJobsIDSchema, CompletedAssignmentSchema, NewWorkerJobSchema, DeleteJobSchema, GetReportDetailsSchema, StatusReasonSchema, ViewEmployerResponsesSchema, SubmitEvidenceUpdate } from "../validator/protected";
+import { ApplicationSchema, CompanySchema, JobOverviewSchema, EmployerIdSchema, JobSchema, LocationSchema, TagSchema, employerIdSchema, ViewProfile, WorkerIDJob, JobIDJob, ApplicationStatusUpdate, OnlyAccepted, UpdateApplication, InterviewDate, CompanySchemaID, IsAppliedS, WorkerID, TimeLineStatus, UpdateWorkerSchema, UpdateEmployerSchema, EmployerProfileS, RatingSchema, PostContacts, EmployerSchemaid, SkillID, PostMessage, ViewMessageByContactID, NotificationIDSchema, reportValidator, reportWorkerValidator, UpdateReportSchema, DeleteReportSchema, NewWorkerAssignmentSchema, UploadWorkerJobSchema, UpdateWorkerJobSchema, SubmittedFilesSchema, DeleteWorkerJobSchema, SubmittedJobsSchema, SubmittedJobsIDSchema, CompletedAssignmentSchema, NewWorkerJobSchema, DeleteJobSchema, GetReportDetailsSchema, StatusReasonSchema, ViewEmployerResponsesSchema, SubmitEvidenceUpdate, DeleteReportXSchema, DeleteReportsSchema } from "../validator/protected";
 import Job from "../model/Job";
 import { filterXSS } from "xss";
 import Application from "../model/Application";
@@ -830,6 +830,7 @@ export const ReportEvidence = async (req: Request, res: Response) => {
       })
     }
 
+    console.log(req.files)
     return res.status(201).json({
       success: true,
       filename: req.files
@@ -840,41 +841,47 @@ export const ReportEvidence = async (req: Request, res: Response) => {
 
 // Delete Reports:
 export const DeleteReport = async (req: Request, res: Response) => {
-  const validatedData = DeleteReportSchema.safeParse({
-    ...req.body,
-    employerId: req.user.id
-  })
+  const validatedData = DeleteReportSchema.safeParse(req.params);
 
-  if (!validatedData.success) {
-    console.error(validatedData.error.issues)
-
+  if (!validatedData.data) {
     return res.status(400).json({
       success: false,
-      message: validatedData.error.issues[0].message
+      message: "Failed to delete the report."
     })
   }
 
-  const { _id, employerId, type } = validatedData.data
-  let message = ""
+  const { _id } = validatedData.data;
+  let errReport = false;
 
   try {
-    if (type === "deleteAll") {
-      await Report.deleteMany({ employerId })
-      message = "Successfully deleted reports"
-    }
+    const _Report = await Report.findOne({ _id })
+    if (!_Report) return res.status(404).json({ success: false, info: "Report Not Found" })
 
-    if (type === "deleteById") {
-      await Report.findOneAndDelete({
-        _id,
-        employerId,
+    for (let i = 0; i < _Report.submitEvidence.length; i++) {
+    //   // Source used: https://medium.com/@priyaeswaran/automatic-image-deletion-in-node-js-multer-fs-f1835d272b92:
+    // const imagePath = path.join(__dirname, "../../uploads/reports", fileName)
+
+    // fs.unlink(imagePath, async (err) => {
+      const imagePath = path.join(__dirname, "../../uploads/reports", _Report.submitEvidence[i].fileName)
+
+      fs.unlink(imagePath, (err) => {
+        if (err) errReport = true
       })
-      message = "Successfully deleted report"
     }
 
-    return res.status(200).json({
-      success: true,
-      message
-    })
+    if (!errReport) {
+      await Report.findOneAndDelete({ _id })
+
+      return res.status(200).json({
+        success: true,
+        info: "Successfully Deleted Report"
+      })
+    } else {
+      return res.status(400).json({
+        success: false,
+        info: "Not all files were successfully"
+      })
+    }
   } catch (error) {
     console.error(error)
     
@@ -882,11 +889,125 @@ export const DeleteReport = async (req: Request, res: Response) => {
   }
 }
 
+export const DeleteReports = async (req: Request, res: Response) => {
+  console.log("Executing Delete Reports Controller")
+  const validatedData = DeleteReportsSchema.safeParse({ userId: req.user.id })
+
+  if (!validatedData.data) {
+    console.error("Failed to validate the user ID")
+    return res.status(400).json({
+      success: false,
+      info: "Failed to validate the user ID"
+    })
+  }
+
+  const { userId } = validatedData.data;
+  let _Report;
+  let errReport = false;
+
+  try {
+    if (req.user.role === "worker") {
+      _Report = await Report.find({ workerId: userId })
+    } else {
+      _Report = await Report.find({ employerId: userId })
+    }
+
+    for (let i = 0; i < _Report.length; i++) {
+      const submitEvidence = _Report[i].submitEvidence;
+
+      for (let submitIndex = 0; submitIndex < submitEvidence.length; submitIndex++) {
+        const imagePath = path.join(__dirname, "../../uploads/reports", submitEvidence[submitIndex].fileName)
+
+        fs.unlink(imagePath, (err) => {
+          if (err) { 
+            errReport = true
+          } else {
+            console.log(submitEvidence[submitIndex].fileName, " being deleted")
+          }
+
+        })
+      }
+    }
+
+    if (!errReport) {
+      // Source: https://www.mongodb.com/docs/manual/reference/method/db.collection.deletemany/
+      if (req.user.role === "worker") {
+        _Report = await Report.deleteMany({ workerId: userId })
+      } else {
+        _Report = await Report.deleteMany({ employerId: userId })
+      }
+
+      console.log("Reports Deleted!")
+
+      return res.status(200).json({
+        success: true,
+        info: "Reports deleted successfully!"
+      })
+    } else {
+      console.log("Not all reports are deleted")
+
+      return res.status(400).json({
+        success: false,
+        info: "Failed to delete some evidences from the reports."
+      })
+    }
+  } catch (error) {
+    console.error(error)
+
+    mainError(error, res)
+  }
+}
+
 export const DeleteReportX = async (req: Request, res: Response) => {
   console.log("Executing DeleteReport X Controller")
-  // Paki-add ng functionalities
 
-  // Ito ang example para sa delete function ng multer:
+  const validatedData = DeleteReportXSchema.safeParse(req.params)
+
+  if (!validatedData.data) {
+    return res.status(400).json({
+      success: false,
+      info: validatedData.error
+    })
+  }
+
+  const { reportId, fileName, fileID } = validatedData.data;
+
+  try {
+    const ReportInfo = await Report.findOne({ _id: reportId })
+    if (!ReportInfo) return res.status(404).json({ success: false, info: "Report Not Found" })
+
+    // Source used: https://medium.com/@priyaeswaran/automatic-image-deletion-in-node-js-multer-fs-f1835d272b92:
+    const imagePath = path.join(__dirname, "../../uploads/reports", fileName)
+
+    fs.unlink(imagePath, async (err) => {
+      if (err) {
+        return res.status(400).json({ success: false, info: "Failed to delete evidence" })
+      } else {
+        // Source Lost, possible source that can be considered source: https://stackoverflow.com/questions/4588303/in-mongodb-how-do-you-remove-an-array-element-by-its-index
+        await Report.updateOne({ _id: reportId }, {
+          $pull: {
+            submitEvidence: {
+              _id: fileID
+            }
+          }
+        })
+
+        const ReportInfoFinal = await Report.findOne({ _id: reportId })
+        if (!ReportInfoFinal) return res.status(404).json({ success: false, info: "Report Not Found" })
+
+        console.log(ReportInfoFinal.submitEvidence)
+
+        return res.status(200).json({
+          success: true,
+          info: "Successfully deleted the image",
+          submitEvidence: ReportInfoFinal.submitEvidence
+        })
+      }
+      
+    })
+  } catch (error) {
+    mainError(error, res)
+  }
   
   // Source used: https://medium.com/@priyaeswaran/automatic-image-deletion-in-node-js-multer-fs-f1835d272b92
   // for (let i = 0; i < jobCompleted.workerUpload.length; i++) {
