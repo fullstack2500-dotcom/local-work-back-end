@@ -1400,6 +1400,7 @@ export const ViewContactsEmployer = async (req: Request, res: Response) => {
 
   try {
     const contacts = await Contact.find({ employerId: id })
+      .populate("worker")
       .sort({ createdAt: -1 });
 
     return res.status(200).json({
