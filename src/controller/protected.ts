@@ -1024,6 +1024,7 @@ export const newApplication = async (req: Request, res: Response) => {
     return res.status(400).json({
       success: false,
       message: errors[0].message,
+      info: errors[0].message
     });
   }
 
@@ -1036,6 +1037,7 @@ export const newApplication = async (req: Request, res: Response) => {
       return res.status(400).json({
         success: false,
         message: "Job does not exist",
+        info: "Job does not exist"
       });
     }
 
@@ -1050,6 +1052,7 @@ export const newApplication = async (req: Request, res: Response) => {
       return res.status(400).json({
         success: false,
         message: "Job is not available",
+        info: "Job is not available"
       });
     }
 
@@ -1057,6 +1060,7 @@ export const newApplication = async (req: Request, res: Response) => {
       return res.status(400).json({
         success: false,
         message: "Job not available",
+        info: "Job not available"
       });
     }
 
@@ -1066,6 +1070,7 @@ export const newApplication = async (req: Request, res: Response) => {
       return res.status(400).json({
         success: false,
         message: "Application already exists",
+        info: "You have already applied for this job"
       });
     }
 
@@ -1109,6 +1114,7 @@ export const newApplication = async (req: Request, res: Response) => {
     return res.status(200).json({
       success: true,
       application: newApplication,
+      info: "Job successfully has been applied!"
     });
   } catch (error: unknown) {
     instanceErrors(error, res);
@@ -2901,9 +2907,10 @@ export const SubmitReason = async (req: Request, res: Response) => {
   const validatedData = StatusReasonSchema.safeParse(parseOBJ)
 
   if (!validatedData.success) {
+    console.error(JSON.stringify(validatedData.error.cause))
     return res.status(400).json({
       success: false,
-      info: validatedData.error.cause
+      info: JSON.stringify(validatedData.error.cause)
     })
   }
 
@@ -2998,7 +3005,12 @@ export const SubmitReason = async (req: Request, res: Response) => {
     })
     
   } catch (error) {
-    instanceErrors(error, res)
+    console.error(error)
+
+    return res.status(500).json({
+      success: false,
+      info: JSON.stringify(error)
+    })
   }
 }
 
