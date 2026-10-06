@@ -1,4 +1,4 @@
-import { TotalWorkers, PendingWorkers, VerifiedWorkers, DeclinedWorkers, NewSkillController, UpdateJobStatus, WorkersEmployers, Dashboard, ViewJobsNew, AddNewIndustry, Profiles, UpdateWorkersEmployersInformation, DeleteWorkerEmployer, Reports, Applications, AdminNotifications, MarkAsReadAdmin, markNotificationsAsRead, deleteAdminNotifSchema, Profile, WorkerVerification, UpdateReportStatus } from "../controller/admin";
+import { TotalWorkers, PendingWorkers, VerifiedWorkers, DeclinedWorkers, NewSkillController, UpdateJobStatus, WorkersEmployers, Dashboard, ViewJobsNew, AddNewIndustry, Profiles, UpdateWorkersEmployersInformation, DeleteWorkerEmployer, Reports, Applications, AdminNotifications, MarkAsReadAdmin, markNotificationsAsRead, deleteAdminNotifSchema, Profile, WorkerVerification, UpdateReportStatus, UpdatePass } from "../controller/admin";
 import { Router } from "express";
 import authorized from "../middleware/authorized";
 import { admin } from "../middleware/roles";
@@ -32,6 +32,9 @@ router.put("/deleteUser", authorized, admin, DeleteWorkerEmployer)
 router.patch("/admin-notifications/mark-read", authorized, admin, markNotificationsAsRead);
 router.patch("/admin-notifications/:_id", authorized, admin, MarkAsReadAdmin);
 router.patch("/update/report", authorized, admin, UpdateReportStatus)
+
+// PATCH Routes:
+router.patch("/update/password", authorized, admin, UpdatePass)
 
 // DELETE Routes:
 router.delete("/admin-notifications/delete/:_id", authorized, admin, deleteAdminNotifSchema)

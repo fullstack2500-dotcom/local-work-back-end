@@ -41,6 +41,31 @@ import { JobPostPayload } from "../notif-payload/user";
 import Admin from "../model/Admin";
 import { getIO } from "../socket";
 import Report from "../model/Report";
+import bcrypt from "bcryptjs";
+
+// Update Admin Password:
+export const UpdatePass = async (req: Request, res: Response) => {
+  try {
+    const AdminInfo = await Admin.findOne({ _id: req.user.id })
+    if (!AdminInfo) return res.status(404).json({ success: false, info: "Account Not Found" })
+
+    const salt = await bcrypt.genSalt(12);
+    const hashed = await bcrypt.hash(req.body.password, salt)
+
+    console.log(hashed, ", this is the password")
+
+    AdminInfo.password = hashed || AdminInfo.password;
+    
+    await AdminInfo.save();
+
+    return res.status(200).json({
+      success: true,
+      info: "Successfully updated the password."
+    })
+  } catch (error) {
+    mainError(error, res)
+  }
+}
 
 
 // Profile:
