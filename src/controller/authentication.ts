@@ -36,6 +36,18 @@ function generateOTP() {
 
 
 
+// Regex Test:
+export const RegexFunction = async (req: Request, res: Response) => {
+  try {
+    const regex = /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[@.#$=?>!"+'(),`~<{\^|/}%*&_;:-])[A-Za-z\d@.#$=?>!"+'(),`~<{\^|/}%*&_;:-]{6,16}$/
+    const password = req.body.password
+
+    return res.status(200).json({ success: true, password, regexPast: regex.test(password) })
+  } catch (error) {
+    mainError(error, res)
+  }
+}
+
 // Source - https://stackoverflow.com/a/72279819
 // Posted by DariusV
 // Retrieved 2026-08-14, License - CC BY-SA 4.0 - Just a Guide. But not fully implemented.

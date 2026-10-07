@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { WorkerRegister, displayFile, AdminRegister, AdminLogin, EmployerRegister, EmployerLogin, WorkerLogin, FindJobs, ViewSkills, DropdownComp, Workers, Reviews, HandleOTPVerification, PermitPost } from "../controller/authentication";
+import { WorkerRegister, displayFile, AdminRegister, AdminLogin, EmployerRegister, EmployerLogin, WorkerLogin, FindJobs, ViewSkills, DropdownComp, Workers, Reviews, HandleOTPVerification, PermitPost, RegexFunction } from "../controller/authentication";
 import rateLimit from "express-rate-limit";
 import { uploadEmployerPermit, uploadFiles } from "../file/upload";
 import { createCompany } from "../controller/authentication";
@@ -15,6 +15,7 @@ router.get("/rating", Reviews)
 router.get("/otp/:email", HandleOTPVerification)
 
 router.post("/companies", createCompany);
+router.post("/password/regex/test", RegexFunction)
 
 // DropDown:
 router.get("/ViewSkills", ViewSkills)
