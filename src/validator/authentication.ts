@@ -99,7 +99,7 @@ export const EmployerSchema = z.object({
     "Password must contain at least one character, one digit, and one special character"
   ),
   phone: z.string("Phone Number must be a string").regex(/^(\+639)\d{9}$/, "Please enter a valid phone number, ex. +639..."),
-  industry: z.string("Industry must be a string"),
+  industry: z.string("Industry must be a string").regex(/^[A-Za-z ]+$/, "Industry must only contain letters and spaces").optional(),
   industryTitle: z.string("Industry title must be a string").regex(/^[A-Za-z ]+$/, "Skill must only contain letters and spaces").optional(),
   permit: z.string("Permit must be the URL string").optional()
 }, "The Employer Schema must be an object")

@@ -377,7 +377,20 @@ export const EmployerRegister = async (req: Request, res: Response) => {
 
   const { company, email, password, phone, industry, industryTitle, permit } = validatedData.data;
 
-  const CompanyName = normalize(company);
+  const companyFilterXSS = filterXSS(company, {
+    whiteList: {},
+    stripIgnoreTag: true,
+    stripIgnoreTagBody: true
+  })
+
+  if (companyFilterXSS.length <= 1) {
+    return res.status(400).json({
+      success: false,
+      info: "Company Name should include at least 2 characters."
+    })
+  }
+
+  const CompanyName = normalize(companyFilterXSS);
 
   console.log(validatedData.data, "Request not empty")
 
@@ -443,7 +456,7 @@ export const EmployerRegister = async (req: Request, res: Response) => {
       finalCompanyName = bestMatch.name;
     } else {
       const created = new Company({
-        name: company,
+        name: companyFilterXSS,
         industry: finalIndustry
       });
 

@@ -182,7 +182,7 @@ export const WorkerAssignments = async (req: Request, res: Response) => {
         }
       }
     } else {
-      workerAssignments  = await WorkerAssignment.find({ employerId: req.user.id }).sort({ createdAt: -1 }).populate("targetWorkers", "_id name")
+      workerAssignments  = await WorkerAssignment.find({ employerId: req.user.id }).sort({ createdAt: -1 }).populate("targetWorkers", "_id")
     }
 
     return res.status(200).json({
@@ -2290,7 +2290,8 @@ export const UpdateEmployer = async (req: Request, res: Response) => {
     const errors = validatedEmployer.error._zod.def;
     return res.status(400).json({
       success: false,
-      message: errors[0].message
+      message: errors[0].message,
+      info: errors[0].message
     });
   }
 
@@ -2308,7 +2309,8 @@ export const UpdateEmployer = async (req: Request, res: Response) => {
     if (!EmployerInformation) {
       return res.status(404).json({
         success: false,
-        message: "Employer Not Found"
+        message: "Employer Not Found",
+        info: "Employer Not Found"
       });
     }
 
@@ -2326,7 +2328,15 @@ export const UpdateEmployer = async (req: Request, res: Response) => {
       path.join(__dirname, "../../uploads/permits")
     )}`
 
-    const CompanyName = normalize(company);
+    const companyFiltered = filterXSS(company, {
+      whiteList: {},
+      stripIgnoreTag: true,
+      stripIgnoreTagBody: true
+    })
+
+    if (companyFiltered.length <= 1) return res.status(400).json({ success: false, info: "Company Name must have at least 2 characters" })
+
+    const CompanyName = normalize(companyFiltered);
 
     let finalIndustry =
       industry || EmployerInformation.industry.toString();
@@ -2393,7 +2403,7 @@ export const UpdateEmployer = async (req: Request, res: Response) => {
       finalCompanyName = bestMatch.name;
     } else {
       const created = new Company({
-        name: company,
+        name: companyFiltered,
         industry: finalIndustry
       });
 
@@ -2420,7 +2430,8 @@ export const UpdateEmployer = async (req: Request, res: Response) => {
 
     return res.status(200).json({
       success: true,
-      message: "Employer has successfully been updated!"
+      message: "Employer has successfully been updated!",
+      info: "Employer has successfully been updated!"
     });
 
   } catch (error) {
