@@ -74,14 +74,14 @@ export const WorkerRegisterSchema = z.object({
         .regex(/^[A-Za-z ]+$/, "Skill must only contain letters and spaces")
     ).min(1, "At least one skill is required").optional()
   ),
-  skill: z.string("Skill Category must be a string"),
+  skill: z.string("Skill Category must be a string").regex(/^[A-Za-z ]+$/, "Skill must only contain letters and spaces"),
 
   // Source - https://stackoverflow.com/q | Posted by user19910212, modified by community. See post 'Timeline' for change history | Retrieved 2026-01-12, License - CC BY-SA 4.0 | To ensure correct usage of .optional() - https://joodi.medium.com/understanding-zod-schema-validation-with-optional-fields-db4f982f8cec
   role: z.enum(["worker", "employer", "admin"], "Role must be either worker, employer, admin").optional(),
   photo: z.string("Photo must be the string URL").optional().nullable(),
   resume: z.string("Resume must be the string URL").optional(),
   status: z.enum(["pending", "verified"], "Status must be either pending or verified").optional(),
-  jobTitle: z.string("Job Title must be a string").regex(/^[A-Za-z]+(?: [A-Za-z]+)*$/, "Job Title must onlyOnly letters and single spaces are allowed. Leading, trailing, or multiple consecutive spaces are not permitted.")
+  jobTitle: z.string("Job Title must be a string").regex(/^[A-Za-z]+(?: [A-Za-z]+)*$/, "Only letters and single spaces are allowed. Leading, trailing, or multiple consecutive spaces are not permitted.")
 })
 
 
