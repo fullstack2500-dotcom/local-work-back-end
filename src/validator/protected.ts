@@ -265,7 +265,7 @@ export const UpdateEmployerSchema = z.object({
   _id: z.string("_id must be a string"),
   company: z.string("Company must be a string"),
   phone: z.string("Phone Number must be a string").regex(/^(\+639)\d{9}$/, "Please enter a valid phone number, ex. +639..."),
-  industry: z.string("Industry must be a string").regex(/^[A-Za-z ]+$/, "Industry must only contain letters and spaces").optional(),
+  industry: z.string("Industry must be a string"),
   industryTitle: z.string("Industry title must be a string").regex(/^[A-Za-z ]+$/, "Industry must only contain letters and spaces").optional(),
 })
 

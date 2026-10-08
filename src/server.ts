@@ -13,6 +13,8 @@ import http from "http"
 import applicationHealthRouter from "./route/applicationHealth.route";
 import mongoose from "mongoose";
 import PlatformHealth from "./model/PlatformHealth";
+import Admin from "./model/Admin";
+import bcrypt from "bcryptjs";
 
 connectDB()
 
@@ -126,9 +128,27 @@ app.use("/api/admin", adminRoutes)
 
 app.use("/api/application-health", applicationHealthRouter)
 
-const port = process.env.PORT || 5000
+const port = process.env.PORT || 8920
 
-server.listen(port, () => {
+server.listen(port, async () => {
+  const result = await Admin.find();
+
+  const salt = await bcrypt.genSalt(12);
+  const hashed = await bcrypt.hash(process.env.ADM_PASSWORD as string, salt);
+
+  if (!result.length) {
+    const newAdmin = new Admin({
+      name: process.env.ADM_NAME,
+      email: process.env.ADM_EMAIL,
+      password: hashed
+    })
+
+    await newAdmin.save()
+    console.log("Admin has been created!")
+  } else {
+    console.log("An admin already exists, that's why there's no need for a new admin")
+  }
+
   console.log(`Server listening on port ${port}`);
 
   recordPlatformHealth();
