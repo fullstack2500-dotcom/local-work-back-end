@@ -227,15 +227,15 @@ const reportStorage = multer.diskStorage({
 
 export const uploadPermits = multer({
   storage: permitStorageFromSource,
-  limits: { fileSize: 1 * 1024 * 1024}
+  limits: { fileSize: 15 * 1024 * 1024 }
 }).single("permit")
 
 export const uploadJobs = multer({
     storage: jobStorage,
-    limits: { fileSize: 1 * 1024 * 1024 }
+    limits: { fileSize: 15 * 1024 * 1024 }
 }).array("workerUpload");
 
 export const reportUpload = multer({
   storage: reportStorage,
-  limits: { fileSize: 1 * 1024 * 1024 }
+  limits: { fileSize: 15 * 1024 * 1024 }
 }).array("submitEvidence")

@@ -7,7 +7,8 @@ export const instanceErrors = (error: unknown, res: Response) => {
 
     return res.status(400).json({
       success: false,
-      message: error.message
+      message: error.message,
+      info: error.message
     })
   }
 
