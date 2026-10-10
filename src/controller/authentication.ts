@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
-import { WorkerRegisterSchema, EmployerSchema, LoginSchema, AdminSchema, AdminLoginSchema, OnlyAccepted, SendEmailOTP } from "../validator/authentication";
+import { WorkerRegisterSchema, EmployerSchema, LoginSchema, AdminSchema, AdminLoginSchema, OnlyAccepted, SendEmailOTP, SendEmailForgotPasswordOTP, ForgotPasswordOTP } from "../validator/authentication";
 import jwt from "jsonwebtoken"
 import Worker from "../model/Worker";
 import { instanceErrors, mainError } from "../errors/showErrors";
@@ -128,6 +128,117 @@ export const HandleOTPVerification = async (req: Request, res: Response) => {
       success: true, otp, newDate
     })
   } catch (error) {
+    mainError(error, res)
+  }
+}
+
+// [Global] - HandleOTP: This controller handles the OTP:
+export const HandleOTPPasswordVerification = async (req: Request, res: Response) => {
+  const validatedData = SendEmailForgotPasswordOTP.safeParse(req.params)
+
+  if (!validatedData.success) {
+    return res.status(400).json({
+      success: false,
+      info: validatedData.error.issues[0].message
+    })
+  }
+  
+  const { email, role } = validatedData.data;
+  let userInfo = undefined;
+
+  try {
+    if (role === "Worker") {
+      userInfo = await Worker.findOne({ email })
+      if (!userInfo) {
+        return res.status(404).json({
+          success: false,
+          info: "Email for worker was not found"
+        })
+      }
+    } else {
+      userInfo = await Employer.findOne({ email })
+      if (!userInfo) {
+        return res.status(404).json({
+          success: false,
+          info: "Email for employer was not found"
+        })
+      }
+    }
+
+    const otp = generateOTP()
+
+    
+    // Source: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/setMinutes:
+    // Tested via: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/setMinutes && Online JS Compiler: https://www.programiz.com/javascript/online-compiler/
+    const newDate = new Date().setMinutes(new Date().getMinutes() + 1)
+    SendEmail(email, "Email Verification", `Your OTP is ${otp}. It will expire in 60 seconds.`)
+
+    console.log(new Date(), new Date(newDate))
+
+    return res.status(200).json({
+      success: true, otp, newDate
+    })
+  } catch (error) {
+    mainError(error, res)
+  }
+}
+
+// [Global] - ForgotPassword:
+export const ForgotPassword = async (req: Request, res: Response) => {
+  const data = await ForgotPasswordOTP.safeParse(req.body);
+
+  if (!data.data) {
+    const errors = JSON.parse(data.error.message)
+    return res.status(400).json({
+      success: false,
+      info: errors[0].message
+    })
+  }
+
+  const { email, create_password, confirm_password, role } = data.data;
+  let userData;
+
+  console.log(email, create_password, confirm_password, role)
+
+  try {
+    if (create_password !== confirm_password) {
+      console.error("Password do not match")
+
+      return res.status(400).json({
+        success: false,
+        info: "Passwords do not match"
+      })
+    }
+
+    if (role === "Worker") {
+      userData = await Worker.findOne({ email })
+    } else {
+      userData = await Employer.findOne({ email })
+    }
+
+    if (!userData) {
+      console.error("User wasn't found")
+
+      return res.status(404).json({
+        success: false,
+        info: "User wasn't found"
+      })
+    }
+
+    const salt = await bcrypt.genSalt(12);
+    const hashedPassword = await bcrypt.hash(create_password, salt)
+
+    userData.password = hashedPassword;
+    await userData.save();
+
+    console.log(userData)
+
+    return res.status(200).json({
+      success: true,
+      info: "Password successfully updated!"
+    })
+  } catch (error) {
+    console.error(error)
     mainError(error, res)
   }
 }

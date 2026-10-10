@@ -7,6 +7,22 @@ export const SendEmailOTP = z.object({
   email: z.string("Email must be a string").email("Email must be a valid")
 })
 
+export const SendEmailForgotPasswordOTP = z.object({
+  email: z.string("Email must be a string").email("Email must be a valid"),
+  role: z.enum(["Worker", "Employer"], "Role should be either Worker and Employer")
+})
+
+export const ForgotPasswordOTP = z.object({
+  email: z.string("Email must be a string").email("Email must be a valid"),
+  role: z.enum(["Worker", "Employer"], "Role should be either Worker and Employer"),
+  create_password: z.string("Password must be a string")
+             .min(6, "Password must have at least 6 characters").max(16, "Password must have a maximum of 16 characters").regex(
+              regex,
+              "Password must contain at least one character, one digit, and one special character"
+            ),
+  confirm_password: z.string("Confirm Password must be a string"),
+})
+
 // Register the Admin:
 export const AdminSchema = z.object({
   name: z.string("Name must be a string").min(3, "Name must have at least 3 characters").max(35, "Name must have a maximum of 35 characters").regex(/^[A-Za-z0-9 ]*$/, "Name must only include letters, digits, and spaces"),

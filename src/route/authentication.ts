@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { WorkerRegister, displayFile, AdminRegister, AdminLogin, EmployerRegister, EmployerLogin, WorkerLogin, FindJobs, ViewSkills, DropdownComp, Workers, Reviews, HandleOTPVerification, PermitPost, RegexFunction } from "../controller/authentication";
+import { WorkerRegister, displayFile, AdminRegister, AdminLogin, EmployerRegister, EmployerLogin, WorkerLogin, FindJobs, ViewSkills, DropdownComp, Workers, Reviews, HandleOTPVerification, PermitPost, RegexFunction, HandleOTPPasswordVerification, ForgotPassword } from "../controller/authentication";
 import rateLimit from "express-rate-limit";
 import { uploadEmployerPermit, uploadFiles } from "../file/upload";
 import { createCompany } from "../controller/authentication";
@@ -13,6 +13,7 @@ router.get("/workers", Workers)
 router.get("/rating", Reviews)
 
 router.get("/otp/:email", HandleOTPVerification)
+router.get("/otp/:email/:role", HandleOTPPasswordVerification)
 
 router.post("/companies", createCompany);
 router.post("/password/regex/test", RegexFunction)
@@ -64,5 +65,8 @@ router.post("/employer/login",
 router.post("/worker/login",
   WorkerLogin
 )
+
+// Update Password:
+router.put("/password/update", ForgotPassword)
 
 export default router

@@ -10,7 +10,8 @@ export const JobSchema = z.object({
   title: z
           .string("Job must be a string")
           .min(3, "Title must have at least 3 characters")
-          .max(60, "Title shouldn't exceed 60 characters"),
+          .max(60, "Title shouldn't exceed 60 characters")
+          .regex(/^[A-Za-z ]+$/, "Job Title must only contain letters and spaces."),
   company: z.string("Company must be a string"),
   posted: z.string("Posted By must be the string of the user ID"),
   location: z.string("Location must be a string"),
@@ -35,8 +36,11 @@ export const JobSchema = z.object({
   schedule: z.string("Schedule must be a string").min(1, "Schedule must have at least one character"),
   startDate: z.string("Please enter a date").optional(),
   positions: z.int("Positions must be an integer"),
-  category: z.string("Category must be a string"),
-  categoryTitle: z.string().optional(),
+
+  // Source - https://stackoverflow.com/a/21456918 | Posted by Srinivas, modified by community. See post 'Timeline' for change history | Retrieved 2026-02-09, License - CC BY-SA 4.0
+  // https://www.geeksforgeeks.org/javascript/javascript-program-to-validate-password-using-regular-expressions/
+  category: z.string("Category must be a string").regex(/^[A-Za-z ]+$/, "Category must only contain letters and spaces").default("others"),
+  categoryTitle: z.string().regex(/^[A-Za-z ]+$/, "Category must only contain letters and spaces").optional(),
   applyBefore: z.string("Apply Before must be a string").date("Apply Before must be a date format"),
   email: z.string("Contact Email must be a string").email("Contact Email must be a valid email"),
   phone: z.string("Contact Phone must be a string").regex(/^(\+639)\d{9}$/, "Please enter a valid phone number, ex. +639...")

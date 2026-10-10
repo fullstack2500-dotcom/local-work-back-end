@@ -1125,6 +1125,8 @@ export const newApplication = async (req: Request, res: Response) => {
 
 // Create new Job:
 export const createJob = async (req: Request, res: Response) => {
+
+  console.log(req.body.category, req.body.categoryTitle)
     
   const io = getIO();
 
@@ -1176,8 +1178,8 @@ export const createJob = async (req: Request, res: Response) => {
   payload.description = filterXSS(payload.description, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
   payload.schedule = filterXSS(payload.schedule, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
   payload.salary = filterXSS(payload.salary, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
-  payload.category = filterXSS(payload.category, { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
-  payload.categoryTitle = filterXSS(payload.categoryTitle ?? "", {
+  payload.category = filterXSS(String(payload.category), { whiteList: {}, stripIgnoreTag: true, stripIgnoreTagBody: true })
+  payload.categoryTitle = filterXSS(String(payload.categoryTitle), {
     whiteList: {},
     stripIgnoreTag: true,
     stripIgnoreTagBody: true,
@@ -1313,12 +1315,22 @@ export const viewJobs = async (req: Request, res: Response) => {
       const isApplied = await Application.findOne({ worker, job })
       if (!isApplied) {
         jobArray.push({ info: jobs[jobIndex],
-          IsApplied: false
+          IsApplied: false,
+          Accepted: false,
         })
       } else {
-        jobArray.push({ info: jobs[jobIndex],
-          IsApplied: true
-        })
+        const Accepted = await Application.findOne({ worker, job, status: "Accepted" })
+        if (Accepted) {
+          jobArray.push({ info: jobs[jobIndex],
+            IsApplied: true,
+            Accepted: true
+          })
+        } else {
+          jobArray.push({ info: jobs[jobIndex],
+            IsApplied: true,
+            Accepted: false
+          })
+        }
       }
     }
 

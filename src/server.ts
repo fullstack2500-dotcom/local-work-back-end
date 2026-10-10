@@ -15,6 +15,7 @@ import mongoose from "mongoose";
 import PlatformHealth from "./model/PlatformHealth";
 import Admin from "./model/Admin";
 import bcrypt from "bcryptjs";
+import Industry from "./model/Industry";
 
 connectDB()
 
@@ -135,6 +136,18 @@ server.listen(port, async () => {
 
   const salt = await bcrypt.genSalt(12);
   const hashed = await bcrypt.hash(process.env.ADM_PASSWORD as string, salt);
+
+  const IndustryArray = ["Construction", "Cleaning", "Waiter", "Insurance", "Retail", "E-commerce", "Wholesale Trade", "Retail", "Food", "Security", "Accounting", "Banking", "Technology"]
+
+  // Ensures that there is industry always.
+  for (let Index = 0; Index < IndustryArray.length; Index++) {
+    const result = await Industry.findOne({ title: "Construction" })
+
+    if (!result) {
+      const newIndustry = new Industry({ title: IndustryArray[Index] , notAccepted: false })
+      await newIndustry.save()
+    }
+  }
 
   if (!result.length) {
     const newAdmin = new Admin({
