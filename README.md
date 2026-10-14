@@ -32,6 +32,42 @@ const connectDB = async () => {
 export default connectDB
 ```
 
+## Seeding dashboard job counts
+
+The job seed adds three clearly labeled demo jobs for one existing, eligible employer:
+one `PENDING`, one `ACCEPTED`, and one `DECLINED`. It does not create an employer,
+delete records, or overwrite existing jobs. Re-running it recognizes its fixed fixture
+IDs and skips jobs already seeded.
+
+Set `SEED_EMPLOYER_EMAIL` to the email of the existing employer to use. `MONGO_URI`
+must point to the intended Atlas database and is loaded through dotenvx. First run a
+read-only preview:
+
+```powershell
+$env:SEED_EMPLOYER_EMAIL="<existing-employer-email>"
+npm run seed:jobs
+```
+
+The script only writes when explicitly applied and the production confirmation is set:
+
+```powershell
+$env:SEED_CONFIRM_PRODUCTION="I_UNDERSTAND_THIS_WRITES_TO_PRODUCTION"
+npm run seed:jobs -- --apply
+```
+
+The seeded records are real production job documents and may appear in the product.
+Review the preview and confirm the database target before applying.
+
+## Cross-origin authentication
+
+For a deployed frontend, set `CORS_ORIGINS` in the backend environment to the exact
+frontend origin, or a comma-separated list of allowed origins. For example:
+`https://app.example.com`. Set `NODE_ENV=production` when the backend is served over
+HTTPS; auth cookies then use `SameSite=None; Secure` for cross-site requests. The
+frontend must send credentialed requests (Axios: `withCredentials: true`; Fetch:
+`credentials: "include"`). The local development default remains
+`http://localhost:8080`.
+
 ## Admin model: ```/src/model/Admin.ts``` ##
 ```
 import { Document, Schema, model } from "mongoose";

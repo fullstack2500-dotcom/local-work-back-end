@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
+import { authCookieOptions } from "../config/http";
 import { WorkerRegisterSchema, EmployerSchema, LoginSchema, AdminSchema, AdminLoginSchema, OnlyAccepted, SendEmailOTP, SendEmailForgotPasswordOTP, ForgotPasswordOTP } from "../validator/authentication";
 import jwt from "jsonwebtoken"
 import Worker from "../model/Worker";
@@ -338,7 +339,7 @@ export const AdminLogin = async (req: Request, res: Response) => {
     if (!Match) return res.status(400).json({ success: false, message: "Invalid email / password"});
 
     const token = jwt.sign({ id: admin._id, role: admin.role }, process.env.JWT_SECRET as string, { expiresIn: '1h' })
-    res.cookie('token', token, { expires: new Date(Date.now() + 60 * 60 * 1000), httpOnly: true, sameSite: 'strict' })
+    res.cookie("token", token, authCookieOptions())
 
     return res.status(200).json({
       success: true,
@@ -677,9 +678,7 @@ export const EmployerLogin = async (req: Request, res: Response) => {
       expiresIn: '1h'
     })
 
-    res.cookie('token', token, { expires: new Date(Date.now() + 60 * 60 * 1000), httpOnly: true, sameSite: 'strict' })
-    console.log(req.cookies)
-    console.log(user.company)
+    res.cookie("token", token, authCookieOptions())
 
     return res.status(200).json({
       success: true,
@@ -720,8 +719,7 @@ export const WorkerLogin = async (req: Request, res: Response) => {
       expiresIn: '1h'
     })
 
-    res.cookie('token', token, { expires: new Date(Date.now() + 60 * 60 * 1000), httpOnly: true, sameSite: 'strict' })
-    console.log(req.cookies)
+    res.cookie("token", token, authCookieOptions())
 
     return res.status(200).json({
       success: true,

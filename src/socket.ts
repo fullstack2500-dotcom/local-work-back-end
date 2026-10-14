@@ -1,5 +1,6 @@
 // socket.ts
 import { Server } from "socket.io";
+import { allowedOrigins } from "./config/http";
 
 let io: Server;
 
@@ -11,7 +12,8 @@ export const initSocket = (server: any) => {
 
   io = new Server(server, {
     cors: {
-      origin: "http://localhost:8080",
+      origin: allowedOrigins,
+      credentials: true,
       methods: ["GET", "POST", "PATCH"],
     },
   });

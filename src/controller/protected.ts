@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { clearAuthCookieOptions } from "../config/http";
 import { ApplicationSchema, CompanySchema, JobOverviewSchema, EmployerIdSchema, JobSchema, LocationSchema, TagSchema, employerIdSchema, ViewProfile, WorkerIDJob, JobIDJob, ApplicationStatusUpdate, OnlyAccepted, UpdateApplication, InterviewDate, CompanySchemaID, IsAppliedS, WorkerID, TimeLineStatus, UpdateWorkerSchema, UpdateEmployerSchema, EmployerProfileS, RatingSchema, PostContacts, EmployerSchemaid, SkillID, PostMessage, ViewMessageByContactID, NotificationIDSchema, reportValidator, reportWorkerValidator, UpdateReportSchema, DeleteReportSchema, NewWorkerAssignmentSchema, UploadWorkerJobSchema, UpdateWorkerJobSchema, SubmittedFilesSchema, DeleteWorkerJobSchema, SubmittedJobsSchema, SubmittedJobsIDSchema, CompletedAssignmentSchema, NewWorkerJobSchema, DeleteJobSchema, GetReportDetailsSchema, StatusReasonSchema, ViewEmployerResponsesSchema, SubmitEvidenceUpdate, DeleteReportXSchema, DeleteReportsSchema } from "../validator/protected";
 import Job from "../model/Job";
 import { filterXSS } from "xss";
@@ -2482,7 +2483,7 @@ export const EmployerProfileController = async (req: Request, res: Response) => 
   }
 }
 
-// [Worker] - ViewPostedJobs: This allows the worker to View Posted Jobs:
+// [Employer] - View jobs posted by the authenticated employer:
 export const viewPostedJobs = async (req: Request, res: Response) => {
   const validatedUserId = UserSchema.safeParse({ user: req.user.id })
   if (validatedUserId.error) { const error = validatedUserId.error.issues; return res.status(400).json({ success: false, message: error[0].message }) }
@@ -2490,8 +2491,14 @@ export const viewPostedJobs = async (req: Request, res: Response) => {
   const { user } = validatedUserId.data
 
   try {
-    const jobs = await Job.find({ postedBy: user }).sort({ createdAt: -1 })
-    if (jobs.length === 0) return res.status(200).json({ success: true, message: "No jobs available" })
+    const jobs = await Job.find({ posted: user }).sort({ createdAt: -1 })
+    if (jobs.length === 0) {
+      return res.status(200).json({
+        success: true,
+        jobs,
+        message: "No jobs available"
+      })
+    }
 
     return res.status(200).json({
       success: true,
@@ -3080,7 +3087,7 @@ export const ViewWorkers = async (req: Request, res: Response) => {
 // Log Out Controller:
 export const LogOut = async (req: Request, res: Response) => {
   try {
-    return res.clearCookie("token").status(200).json({ success: true, message: "Successfully Logged Out!" })
+    return res.clearCookie("token", clearAuthCookieOptions).status(200).json({ success: true, message: "Successfully Logged Out!" })
   } catch (error) {
     return res.status(500).json({ success: false, message: "Internal Server Error"
     })

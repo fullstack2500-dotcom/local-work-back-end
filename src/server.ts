@@ -16,6 +16,7 @@ import PlatformHealth from "./model/PlatformHealth";
 import Admin from "./model/Admin";
 import bcrypt from "bcryptjs";
 import Industry from "./model/Industry";
+import { allowedOrigins } from "./config/http";
 
 connectDB()
 
@@ -101,7 +102,7 @@ Retrieved 2026-02-16, License - CC BY-SA 4.0
 app.use(helmet.crossOriginResourcePolicy({ policy: "cross-origin" }));
 
 app.use(cors({
-  origin: 'http://localhost:8080',
+  origin: allowedOrigins,
   credentials: true
 }))
 
